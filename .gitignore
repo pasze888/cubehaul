@@ -12,3 +12,6 @@ mods/
 .idea/
 .vscode/
 *.swp
+
+# 发布构建产物
+dist/
