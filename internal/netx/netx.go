@@ -33,18 +33,18 @@ func NewClient(timeout time.Duration) *http.Client {
 }
 
 // ProxyFunc resolves the proxy for a request, in order:
-//  1. MODFETCH_PROXY — explicit override, e.g. "http://127.0.0.1:7897" or "socks5://127.0.0.1:7890"
+//  1. CUBEHAUL_PROXY — explicit override, e.g. "http://127.0.0.1:7897" or "socks5://127.0.0.1:7890"
 //  2. HTTP_PROXY / HTTPS_PROXY / NO_PROXY environment variables (standard Go behavior)
 //  3. Windows system proxy (Internet Options: ProxyEnable/ProxyServer/ProxyOverride)
 //  4. direct connection
 func ProxyFunc() func(*http.Request) (*url.URL, error) {
-	if v := os.Getenv("MODFETCH_PROXY"); v != "" {
+	if v := os.Getenv("CUBEHAUL_PROXY"); v != "" {
 		u, err := parseProxyURL(v)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "modfetch: invalid MODFETCH_PROXY %q: %v (ignored)\n", v, err)
+			fmt.Fprintf(os.Stderr, "cubehaul: invalid CUBEHAUL_PROXY %q: %v (ignored)\n", v, err)
 			return http.ProxyFromEnvironment
 		}
-		debugf("using proxy %s (MODFETCH_PROXY)", u)
+		debugf("using proxy %s (CUBEHAUL_PROXY)", u)
 		return func(*http.Request) (*url.URL, error) { return u, nil }
 	}
 	if hasEnvProxy() {
@@ -80,8 +80,8 @@ func parseProxyURL(v string) (*url.URL, error) {
 }
 
 func debugf(format string, args ...any) {
-	if os.Getenv("MODFETCH_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "modfetch: "+format+"\n", args...)
+	if os.Getenv("CUBEHAUL_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "cubehaul: "+format+"\n", args...)
 	}
 }
 

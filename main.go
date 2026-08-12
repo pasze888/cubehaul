@@ -1,6 +1,6 @@
 package main
 
-import "modfetch/cmd"
+import "cubehaul/cmd"
 
 func main() {
 	cmd.Execute()

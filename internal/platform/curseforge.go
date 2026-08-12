@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"modfetch/internal/config"
-	"modfetch/internal/netx"
+	"cubehaul/internal/config"
+	"cubehaul/internal/netx"
 )
 
 // Minecraft game ID on CurseForge.
@@ -86,7 +86,7 @@ func (c *CurseForgeClient) Name() string { return PlatformCurseForge }
 
 func (c *CurseForgeClient) requireKey() error {
 	if c.apiKey == "" {
-		return errors.New(`CurseForge API key is required for this operation. Set the CURSEFORGE_API_KEY environment variable or add "curseforge_api_key" to ~/.modfetch/config.json. Get a key at https://console.curseforge.com`)
+		return errors.New(`CurseForge API key is required for this operation. Set the CURSEFORGE_API_KEY environment variable or add "curseforge_api_key" to ~/.cubehaul/config.json. Get a key at https://console.curseforge.com`)
 	}
 	return nil
 }
@@ -446,7 +446,7 @@ func (c *CurseForgeClient) resolveCategory(ctx context.Context, name string, cla
 		}
 	}
 	if len(matches) == 0 {
-		return 0, fmt.Errorf("category %q not found for class %d (see `modfetch categories curseforge` for the full list)", name, classID)
+		return 0, fmt.Errorf("category %q not found for class %d (see `cubehaul categories curseforge` for the full list)", name, classID)
 	}
 	for _, m := range matches {
 		if m.ClassID == classID || m.IsClass {

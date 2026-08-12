@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"modfetch/internal/config"
-	"modfetch/internal/output"
-	"modfetch/internal/platform"
+	"cubehaul/internal/config"
+	"cubehaul/internal/output"
+	"cubehaul/internal/platform"
 )
 
 var infoCmd = &cobra.Command{
@@ -16,8 +16,8 @@ var infoCmd = &cobra.Command{
 	Long: `Show details of a single project. <platform> is modrinth or curseforge;
 <id> is a slug or numeric ID on Modrinth, a numeric mod ID on CurseForge
 (the ID or slug comes from the search results).`,
-	Example: `  modfetch info modrinth sodium
-  modfetch info curseforge 394468`,
+	Example: `  cubehaul info modrinth sodium
+  cubehaul info curseforge 394468`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()

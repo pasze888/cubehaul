@@ -1,37 +1,37 @@
-# ModFetch
+# CubeHaul
 
-搜索、查看、下载 Minecraft 模组 —— 同时支持 **Modrinth** 和 **CurseForge** 的 Go CLI 工具。
+> haul cubes from the mod mines — 搜索、查看、下载 Minecraft 模组，同时支持 **Modrinth** 和 **CurseForge** 的 Go CLI 工具。
 
 ## 构建
 
 ```bash
-go build -o modfetch .
+go build -o cubehaul .
 ```
 
 ## 命令
 
 ```bash
 # 搜索（--platform 必填）
-modfetch search sodium --platform modrinth --loader fabric --game-version 1.20.1 --limit 10
-modfetch search "" --platform modrinth --category adventure --sort downloads
-modfetch search --platform curseforge --loader forge --game-version 1.20.1 --category technology
+cubehaul search sodium --platform modrinth --loader fabric --game-version 1.20.1 --limit 10
+cubehaul search "" --platform modrinth --category adventure --sort downloads
+cubehaul search --platform curseforge --loader forge --game-version 1.20.1 --category technology
 
 # 项目详情
-modfetch info modrinth sodium
-modfetch info curseforge 394468
+cubehaul info modrinth sodium
+cubehaul info curseforge 394468
 
 # 版本列表（ID 列可直接用于 download --version-id）
-modfetch versions modrinth sodium --loader fabric --game-version 1.20.1
-modfetch versions curseforge 394468 --loader forge
+cubehaul versions modrinth sodium --loader fabric --game-version 1.20.1
+cubehaul versions curseforge 394468 --loader forge
 
 # 下载（三种版本选择方式）
-modfetch download modrinth sodium --latest
-modfetch download modrinth sodium --loader fabric --game-version 1.20.1
-modfetch download curseforge 394468 --version-id 5730579 --output-dir ./mods
+cubehaul download modrinth sodium --latest
+cubehaul download modrinth sodium --loader fabric --game-version 1.20.1
+cubehaul download curseforge 394468 --version-id 5730579 --output-dir ./mods
 
 # 分类列表（CurseForge 无需 API key）
-modfetch categories curseforge --class-id 6
-modfetch categories modrinth
+cubehaul categories curseforge --class-id 6
+cubehaul categories modrinth
 ```
 
 所有输出命令均支持 `--json`。
@@ -55,13 +55,13 @@ Modrinth 的 facet 语法：内层数组 OR、外层 AND，`:`/`=` 表示等于�
 
 ```bash
 # 便捷参数自动展开为 facet 组
-modfetch search "" --platform modrinth --category adventure --category technology --loader fabric --game-version 1.20.1
+cubehaul search "" --platform modrinth --category adventure --category technology --loader fabric --game-version 1.20.1
 
 # 原始 facet 透传，可重复
-modfetch search "" --platform modrinth --facet 'downloads>=100000000' --facet 'versions!=1.20.1'
+cubehaul search "" --platform modrinth --facet 'downloads>=100000000' --facet 'versions!=1.20.1'
 
 # 原始 JSON facet 组（追加 AND 组，优先级最高）
-modfetch search "" --platform modrinth --facets-json '[["categories:forge"],["versions:1.17.1"]]'
+cubehaul search "" --platform modrinth --facets-json '[["categories:forge"],["versions:1.17.1"]]'
 
 # 其它便捷过滤（仅 modrinth）
 --open-source / --no-open-source   # 开源过滤
@@ -87,12 +87,12 @@ modfetch search "" --platform modrinth --facets-json '[["categories:forge"],["ve
 
 工具自动使用系统代理，无需配置（API 请求和文件下载都生效）：
 
-1. `MODFETCH_PROXY` 环境变量（显式覆盖，优先级最高），如 `http://127.0.0.1:7897` 或 `socks5://127.0.0.1:7890`
+1. `CUBEHAUL_PROXY` 环境变量（显式覆盖，优先级最高），如 `http://127.0.0.1:7897` 或 `socks5://127.0.0.1:7890`
 2. 标准 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` 环境变量
 3. **Windows 系统代理**（Internet 选项里的代理设置，读取注册表 `ProxyEnable`/`ProxyServer`/`ProxyOverride`，含 `localhost`、`127.*`、`<local>` 等绕过规则）
 4. 都没有时直连
 
-设 `MODFETCH_DEBUG=1` 可在 stderr 打印实际使用的代理。macOS/Linux 没有注册表代理，请用环境变量方式。
+设 `CUBEHAUL_DEBUG=1` 可在 stderr 打印实际使用的代理。macOS/Linux 没有注册表代理，请用环境变量方式。
 
 ## 配置
 
@@ -100,7 +100,7 @@ modfetch search "" --platform modrinth --facets-json '[["categories:forge"],["ve
 # 方式一：环境变量
 export CURSEFORGE_API_KEY=xxxxxxxx
 
-# 方式二：配置文件 ~/.modfetch/config.json
+# 方式二：配置文件 ~/.cubehaul/config.json
 {
   "curseforge_api_key": "xxxxxxxx",
   "user_agent": "myname/1.0 (me@example.com)"
@@ -108,7 +108,7 @@ export CURSEFORGE_API_KEY=xxxxxxxx
 ```
 
 - CurseForge 的搜索/详情/版本接口需要 API key（[申请地址](https://console.curseforge.com)）；`categories` 可匿名访问。
-- Modrinth 无需认证，但强制携带 User-Agent（默认 `modfetch/0.1.0`，可在配置里替换为你的联系方式）。
+- Modrinth 无需认证，但强制携带 User-Agent（默认 `cubehaul/0.1.0`，可在配置里替换为你的联系方式）。
 - 没有 key 时给出明确报错提示。
 
 ## 实现要点

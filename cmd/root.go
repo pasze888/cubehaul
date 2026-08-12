@@ -1,4 +1,4 @@
-// Package cmd implements the modfetch CLI commands.
+// Package cmd implements the cubehaul CLI commands.
 package cmd
 
 import (
@@ -11,20 +11,20 @@ import (
 var jsonOutput bool
 
 var rootCmd = &cobra.Command{
-	Use:   "modfetch",
+	Use:   "cubehaul",
 	Short: "Search, inspect and download Minecraft mods from Modrinth and CurseForge",
-	Long: `modfetch searches and downloads Minecraft projects from Modrinth and CurseForge.
+	Long: `cubehaul searches and downloads Minecraft projects from Modrinth and CurseForge.
 
 Typical workflow:
-  modfetch search sodium --platform modrinth --loader fabric      # find projects
-  modfetch info modrinth sodium                                   # project details
-  modfetch versions modrinth sodium --loader fabric               # pick a version
-  modfetch download modrinth sodium --latest --output-dir ./mods  # download it
+  cubehaul search sodium --platform modrinth --loader fabric      # find projects
+  cubehaul info modrinth sodium                                   # project details
+  cubehaul versions modrinth sodium --loader fabric               # pick a version
+  cubehaul download modrinth sodium --latest --output-dir ./mods  # download it
 
 Configuration:
   Modrinth needs no key but requires a User-Agent, which is set automatically.
   CurseForge requires an API key: set CURSEFORGE_API_KEY or add
-  "curseforge_api_key" to ~/.modfetch/config.json (get a key at
+  "curseforge_api_key" to ~/.cubehaul/config.json (get a key at
   https://console.curseforge.com). The config file may also contain a
   "user_agent" field with your contact info.`,
 	Version: "0.1.0",

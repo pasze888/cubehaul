@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"modfetch/internal/config"
-	"modfetch/internal/output"
-	"modfetch/internal/platform"
+	"cubehaul/internal/config"
+	"cubehaul/internal/output"
+	"cubehaul/internal/platform"
 )
 
 var categoriesFlags struct {
@@ -20,9 +20,9 @@ var categoriesCmd = &cobra.Command{
 	Long: `List the Minecraft category tree. <platform> is modrinth or curseforge.
 CurseForge returns classes and their sub-categories (accessible without an
 API key); Modrinth returns its category tags. These names feed into
-"modfetch search --category".`,
-	Example: `  modfetch categories curseforge --class-id 6
-  modfetch categories modrinth`,
+"cubehaul search --category".`,
+	Example: `  cubehaul categories curseforge --class-id 6
+  cubehaul categories modrinth`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()

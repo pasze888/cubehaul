@@ -1,5 +1,5 @@
 // Package config handles loading of ModFetch configuration from
-// environment variables and ~/.modfetch/config.json.
+// environment variables and ~/.cubehaul/config.json.
 package config
 
 import (
@@ -18,7 +18,7 @@ type Config struct {
 
 // DefaultUserAgent is used when no User-Agent is configured.
 // Modrinth requires a User-Agent on every request.
-const DefaultUserAgent = "modfetch/0.1.0 (contact: set user_agent in ~/.modfetch/config.json)"
+const DefaultUserAgent = "cubehaul/0.1.0 (contact: set user_agent in ~/.cubehaul/config.json)"
 
 // Load reads configuration. Precedence: environment variable > config file.
 func Load() (*Config, error) {
@@ -48,5 +48,5 @@ func ConfigPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot locate home directory: %w", err)
 	}
-	return filepath.Join(home, ".modfetch", "config.json"), nil
+	return filepath.Join(home, ".cubehaul", "config.json"), nil
 }

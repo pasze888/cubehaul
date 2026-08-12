@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"modfetch/internal/config"
-	"modfetch/internal/output"
-	"modfetch/internal/platform"
+	"cubehaul/internal/config"
+	"cubehaul/internal/output"
+	"cubehaul/internal/platform"
 )
 
 var searchFlags struct {
@@ -55,10 +55,10 @@ passes the raw JSON array of arrays, e.g. [["categories:forge"],["versions:1.17.
 
 CurseForge has no facet system; --raw-param passes arbitrary query parameters
 through verbatim, e.g. --raw-param 'gameVersion=1.20.1'.`,
-	Example: `  modfetch search sodium --platform modrinth --loader fabric --limit 5
-  modfetch search sodium --platform curseforge --loader forge
-  modfetch search "" --platform modrinth --category adventure --sort downloads
-  modfetch search "" --platform modrinth --facet 'downloads>=100000000' --sort downloads`,
+	Example: `  cubehaul search sodium --platform modrinth --loader fabric --limit 5
+  cubehaul search sodium --platform curseforge --loader forge
+  cubehaul search "" --platform modrinth --category adventure --sort downloads
+  cubehaul search "" --platform modrinth --facet 'downloads>=100000000' --sort downloads`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runSearch,
 }

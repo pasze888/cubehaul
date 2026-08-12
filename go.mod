@@ -1,4 +1,4 @@
-module modfetch
+module cubehaul
 
 go 1.25.0
 

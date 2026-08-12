@@ -6,10 +6,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"modfetch/internal/config"
-	"modfetch/internal/download"
-	"modfetch/internal/output"
-	"modfetch/internal/platform"
+	"cubehaul/internal/config"
+	"cubehaul/internal/download"
+	"cubehaul/internal/output"
+	"cubehaul/internal/platform"
 )
 
 var downloadFlags struct {
@@ -25,14 +25,14 @@ var downloadCmd = &cobra.Command{
 	Short: "Download a version of a project",
 	Long: `Download a version of a project. <platform> is modrinth or curseforge;
 <id> comes from the search results. Choose the version with one of:
-  --version-id <id>                exact version id (see "modfetch versions")
+  --version-id <id>                exact version id (see "cubehaul versions")
   --latest                         most recent version
   --loader / --game-version        first version matching the filters
 
 If several files exist for the version, the primary file is downloaded.`,
-	Example: `  modfetch download modrinth sodium --latest
-  modfetch download modrinth sodium --loader fabric --game-version 1.20.1
-  modfetch download curseforge 394468 --version-id 5730579 --output-dir ./mods`,
+	Example: `  cubehaul download modrinth sodium --latest
+  cubehaul download modrinth sodium --loader fabric --game-version 1.20.1
+  cubehaul download curseforge 394468 --version-id 5730579 --output-dir ./mods`,
 	Args: cobra.ExactArgs(2),
 	RunE: runDownload,
 }
@@ -85,7 +85,7 @@ func runDownload(cmd *cobra.Command, args []string) error {
 			}
 		}
 		if target == nil {
-			return fmt.Errorf("version %q not found for project %s (see `modfetch versions %s %s`)",
+			return fmt.Errorf("version %q not found for project %s (see `cubehaul versions %s %s`)",
 				downloadFlags.versionID, args[1], args[0], args[1])
 		}
 	case downloadFlags.latest:

@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"modfetch/internal/config"
-	"modfetch/internal/output"
-	"modfetch/internal/platform"
+	"cubehaul/internal/config"
+	"cubehaul/internal/output"
+	"cubehaul/internal/platform"
 )
 
 var versionsFlags struct {
@@ -21,9 +21,9 @@ var versionsCmd = &cobra.Command{
 	Short: "List versions of a project",
 	Long: `List versions (releases/files) of a project. <platform> is modrinth or
 curseforge; <id> is a slug or ID on Modrinth, a numeric mod ID on CurseForge.
-The ID column feeds directly into "modfetch download --version-id".`,
-	Example: `  modfetch versions modrinth sodium --loader fabric
-  modfetch versions curseforge 394468 --game-version 1.20.1`,
+The ID column feeds directly into "cubehaul download --version-id".`,
+	Example: `  cubehaul versions modrinth sodium --loader fabric
+  cubehaul versions curseforge 394468 --game-version 1.20.1`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()

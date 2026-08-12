@@ -10,7 +10,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"modfetch/internal/platform"
+	"cubehaul/internal/platform"
 )
 
 func printJSON(v any) {

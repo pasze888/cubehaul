@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"modfetch/internal/config"
-	"modfetch/internal/netx"
+	"cubehaul/internal/config"
+	"cubehaul/internal/netx"
 )
 
 // validModrinthFacetTypes are the facet types accepted by GET /search.

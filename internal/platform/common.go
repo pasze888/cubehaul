@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"modfetch/internal/config"
+	"cubehaul/internal/config"
 )
 
 // Platform names.
