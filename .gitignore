@@ -1,0 +1,14 @@
+# 构建产物
+modfetch.exe
+modfetch
+
+# 下载输出
+mods/
+
+# 临时下载文件
+*.part
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
