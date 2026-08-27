@@ -15,8 +15,8 @@
 ### 快速开始
 
 ```bash
-cubehaul search sodium --platform modrinth --loader fabric --limit 5
-cubehaul download modrinth sodium --latest --output-dir ./mods
+cubehaul modrinth search sodium --loader fabric --limit 5
+cubehaul modrinth download sodium --latest --output-dir ./mods
 ```
 
 ### 平台

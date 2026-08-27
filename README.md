@@ -10,28 +10,30 @@ go build -o cubehaul .
 
 ## 命令
 
+所有命令都挂在平台子命令下（`cubehaul modrinth ...` / `cubehaul curseforge ...`，各自只暴露本平台支持的 flag）：
+
 ```bash
-# 搜索（--platform 必填）
-cubehaul search sodium --platform modrinth --loader fabric --game-version 1.20.1 --limit 10
-cubehaul search "" --platform modrinth --category adventure --sort downloads
-cubehaul search --platform curseforge --loader forge --game-version 1.20.1 --category technology
+# 搜索（query 可选，省略则按过滤条件列出）
+cubehaul modrinth search sodium --loader fabric --game-version 1.20.1 --limit 10
+cubehaul modrinth search "" --category adventure --sort downloads
+cubehaul curseforge search sodium --loader forge --game-version 1.20.1 --category technology
 
 # 项目详情
-cubehaul info modrinth sodium
-cubehaul info curseforge 394468
+cubehaul modrinth info sodium
+cubehaul curseforge info 394468
 
 # 版本列表（ID 列可直接用于 download --version-id）
-cubehaul versions modrinth sodium --loader fabric --game-version 1.20.1
-cubehaul versions curseforge 394468 --loader forge
+cubehaul modrinth versions sodium --loader fabric --game-version 1.20.1
+cubehaul curseforge versions 394468 --loader forge
 
 # 下载（三种版本选择方式）
-cubehaul download modrinth sodium --latest
-cubehaul download modrinth sodium --loader fabric --game-version 1.20.1
-cubehaul download curseforge 394468 --version-id 5730579 --output-dir ./mods
+cubehaul modrinth download sodium --latest
+cubehaul modrinth download sodium --loader fabric --game-version 1.20.1
+cubehaul curseforge download 394468 --version-id 5730579 --output-dir ./mods
 
 # 分类列表（CurseForge 无需 API key）
-cubehaul categories curseforge --class-id 6
-cubehaul categories modrinth
+cubehaul curseforge categories --class-id 6
+cubehaul modrinth categories
 ```
 
 所有输出命令均支持 `--json`。
@@ -55,13 +57,13 @@ Modrinth 的 facet 语法：内层数组 OR、外层 AND，`:`/`=` 表示等于�
 
 ```bash
 # 便捷参数自动展开为 facet 组
-cubehaul search "" --platform modrinth --category adventure --category technology --loader fabric --game-version 1.20.1
+cubehaul modrinth search "" --category adventure --category technology --loader fabric --game-version 1.20.1
 
 # 原始 facet 透传，可重复
-cubehaul search "" --platform modrinth --facet 'downloads>=100000000' --facet 'versions!=1.20.1'
+cubehaul modrinth search "" --facet 'downloads>=100000000' --facet 'versions!=1.20.1'
 
 # 原始 JSON facet 组（追加 AND 组，优先级最高）
-cubehaul search "" --platform modrinth --facets-json '[["categories:forge"],["versions:1.17.1"]]'
+cubehaul modrinth search "" --facets-json '[["categories:forge"],["versions:1.17.1"]]'
 
 # 其它便捷过滤（仅 modrinth）
 --open-source / --no-open-source   # 开源过滤
@@ -81,7 +83,7 @@ cubehaul search "" --platform modrinth --facets-json '[["categories:forge"],["ve
 --raw-param 'key=value'        # 任意查询参数原样透传，可重复
 ```
 
-> 平台不支持的参数会在请求前报错（如 modrinth 的 `--facet` 用于 curseforge、`--author` 用于 curseforge）。
+> 平台不支持的 flag 不会出现在对应子命令上（如 `--facet`、`--author` 只属于 `modrinth search`，`--raw-param` 只属于 `curseforge search`）。
 
 ## 系统代理
 
