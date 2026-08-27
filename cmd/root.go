@@ -15,11 +15,17 @@ var rootCmd = &cobra.Command{
 	Short: "Search, inspect and download Minecraft mods from Modrinth and CurseForge",
 	Long: `cubehaul searches and downloads Minecraft projects from Modrinth and CurseForge.
 
-Typical workflow:
-  cubehaul search sodium --platform modrinth --loader fabric      # find projects
+Search is available under per-platform sub-commands, each with its own flags:
+
+  cubehaul modrinth search sodium --loader fabric --limit 5
+  cubehaul curseforge search sodium --loader forge
+
+The remaining verbs take <platform> as a positional argument:
+
   cubehaul info modrinth sodium                                   # project details
   cubehaul versions modrinth sodium --loader fabric               # pick a version
   cubehaul download modrinth sodium --latest --output-dir ./mods  # download it
+  cubehaul categories modrinth                                    # list categories
 
 Configuration:
   Modrinth needs no key but requires a User-Agent, which is set automatically.
@@ -39,4 +45,6 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "print output as JSON")
+	rootCmd.AddCommand(newModrinthCmd())
+	rootCmd.AddCommand(newCurseforgeCmd())
 }

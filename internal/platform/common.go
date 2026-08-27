@@ -22,6 +22,11 @@ const (
 type SearchOptions struct {
 	Query string
 
+	// PlatformName is the target platform ("modrinth" or "curseforge"),
+	// set by the calling client so the Search implementation can reject
+	// fields it does not implement instead of silently ignoring them.
+	PlatformName string
+
 	// Common convenience filters.
 	ProjectType  string
 	Environment  string
