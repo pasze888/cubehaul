@@ -8,20 +8,25 @@ import (
 	"cubehaul/internal/platform"
 )
 
-// curseforgeCmd is the `cubehaul curseforge` platform command. It hosts one
-// sub-command — `search` — whose flags are limited to what CurseForge supports.
+// newCurseforgeCmd builds the `cubehaul curseforge` platform command, hosting
+// the full verb set (search/info/versions/download/categories) scoped to
+// CurseForge.
 func newCurseforgeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "curseforge",
 		Aliases: []string{"cf"},
-		Short:   "Search CurseForge (api.curseforge.com)",
-		Long: `Search CurseForge projects. Most operations require an API key: set
+		Short:   "Work with CurseForge (api.curseforge.com)",
+		Long: `Operate on CurseForge projects. Most operations require an API key: set
 CURSEFORGE_API_KEY or add "curseforge_api_key" to ~/.cubehaul/config.json
-(get a key at https://console.curseforge.com).
-
-The query is optional: omit it to list projects filtered by the flags below.`,
+(get a key at https://console.curseforge.com).`,
 	}
-	cmd.AddCommand(newCurseforgeSearchCmd())
+	cmd.AddCommand(
+		newCurseforgeSearchCmd(),
+		newInfoCmd(platform.PlatformCurseForge),
+		newVersionsCmd(platform.PlatformCurseForge),
+		newDownloadCmd(platform.PlatformCurseForge),
+		newCategoriesCmd(platform.PlatformCurseForge, true),
+	)
 	return cmd
 }
 

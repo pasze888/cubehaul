@@ -10,19 +10,23 @@ import (
 	"cubehaul/internal/platform"
 )
 
-// modrinthCmd is the `cubehaul modrinth` platform command. It hosts one
-// sub-command — `search` — whose flags are limited to what Modrinth supports.
+// newModrinthCmd builds the `cubehaul modrinth` platform command, hosting the
+// full verb set (search/info/versions/download/categories) scoped to Modrinth.
 func newModrinthCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "modrinth",
 		Aliases: []string{"mr"},
-		Short:   "Search Modrinth (api.modrinth.com)",
-		Long: `Search Modrinth projects. No authentication is required; a User-Agent is
-set automatically.
-
-The query is optional: omit it to list projects filtered by the flags below.`,
+		Short:   "Work with Modrinth (api.modrinth.com)",
+		Long: `Operate on Modrinth projects. No authentication is required; a User-Agent
+is set automatically.`,
 	}
-	cmd.AddCommand(newModrinthSearchCmd())
+	cmd.AddCommand(
+		newModrinthSearchCmd(),
+		newInfoCmd(platform.PlatformModrinth),
+		newVersionsCmd(platform.PlatformModrinth),
+		newDownloadCmd(platform.PlatformModrinth),
+		newCategoriesCmd(platform.PlatformModrinth, false),
+	)
 	return cmd
 }
 

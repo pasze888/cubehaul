@@ -15,17 +15,20 @@ var rootCmd = &cobra.Command{
 	Short: "Search, inspect and download Minecraft mods from Modrinth and CurseForge",
 	Long: `cubehaul searches and downloads Minecraft projects from Modrinth and CurseForge.
 
-Search is available under per-platform sub-commands, each with its own flags:
+All verbs live under a per-platform sub-command, each exposing only the flags
+its platform supports:
 
   cubehaul modrinth search sodium --loader fabric --limit 5
+  cubehaul modrinth info sodium
+  cubehaul modrinth versions sodium --loader fabric
+  cubehaul modrinth download sodium --latest --output-dir ./mods
+  cubehaul modrinth categories
+
   cubehaul curseforge search sodium --loader forge
-
-The remaining verbs take <platform> as a positional argument:
-
-  cubehaul info modrinth sodium                                   # project details
-  cubehaul versions modrinth sodium --loader fabric               # pick a version
-  cubehaul download modrinth sodium --latest --output-dir ./mods  # download it
-  cubehaul categories modrinth                                    # list categories
+  cubehaul curseforge info 394468
+  cubehaul curseforge versions 394468 --loader forge
+  cubehaul curseforge download 394468 --version-id 5730579
+  cubehaul curseforge categories --class-id 6
 
 Configuration:
   Modrinth needs no key but requires a User-Agent, which is set automatically.
