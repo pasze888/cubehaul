@@ -10,7 +10,7 @@ go build -o cubehaul .
 
 ## 命令
 
-所有命令都挂在平台子命令下（`cubehaul modrinth ...` / `cubehaul curseforge ...`，各自只暴露本平台支持的 flag）：
+所有命令都挂在平台子命令下（`cubehaul modrinth ...` / `cubehaul curseforge ...`，各自只暴露本平台支持的 flag）。两个平台子命令都有缩写：`modrinth` → `mr`、`curseforge` → `cf`：
 
 ```bash
 # 搜索（query 可选，省略则按过滤条件列出）
@@ -34,9 +34,15 @@ cubehaul curseforge download 394468 --version-id 5730579 --output-dir ./mods
 # 分类列表（CurseForge 无需 API key）
 cubehaul curseforge categories --class-id 6
 cubehaul modrinth categories
+
+# 用缩写（与上面完全等价）
+cubehaul mr search sodium --loader fabric
+cubehaul cf info 394468
 ```
 
 所有输出命令均支持 `--json`。
+
+> `download` 默认保存到**系统下载文件夹**（Windows 取 `FOLDERID_Downloads`，兼容 OneDrive 重定向；Linux 读 `XDG_DOWNLOAD_DIR`，回退 `~/Downloads`），目录不存在会自动创建。拿不到时直接报错并提示传 `--output-dir`，不会静默写到意外位置。它**不会**自动寻找某个 Minecraft 实例的 mods 目录，要直接落到实例里请显式指定 `--output-dir`。
 
 ## 搜索过滤
 
@@ -48,8 +54,10 @@ cubehaul modrinth categories
 | `--category` | 分类名/slug，可重复（同组 OR）；CF 自动按名称查分类表转 ID |
 | `--loader` | fabric / forge / neoforge / quilt / ...，可重复 |
 | `--game-version` | 如 1.20.1，可重复 |
-| `--sort` | modrinth: relevance/downloads/follows/newest/updated；curseforge: featured/popularity/updated/name/author/downloads |
+| `--sort` | modrinth: relevance/downloads/follows/newest/updated；curseforge: relevancy/featured/popularity/updated/name/author/downloads/category/game-version |
 | `--limit` / `--offset` | 分页（CF 单页上限 50） |
+
+> **缺省排序**：带查询词时两个平台都按**相关度**排（Modrinth 的 `relevance`、CurseForge 的 `relevancy`/`sortField=13`，并显式发 `sortOrder=desc`，因为 CF 省略 `sortOrder` 时实测等价于升序，会把最匹配的踩到最后）。CF 的纯过滤搜索（query 为空，如 `search "" --category technology`）不发 sortField，用服务端默认序——空查询下相关度无定义。`--sort` 显式指定时以你传的为准。
 
 ### Modrinth 专有（facet 精细控制）
 
@@ -101,17 +109,35 @@ cubehaul modrinth search "" --facets-json '[["categories:forge"],["versions:1.17
 ```bash
 # 方式一：环境变量
 export CURSEFORGE_API_KEY=xxxxxxxx
+# 可选：把 API 指向只读缓存/镜像（免 key，见下）
+export CURSEFORGE_API_BASE=https://mod.mcimirror.top/curseforge/v1
+export MODRINTH_API_BASE=https://mod.mcimirror.top/modrinth/v2
 
 # 方式二：配置文件 ~/.cubehaul/config.json
 {
   "curseforge_api_key": "xxxxxxxx",
+  "curseforge_api_base": "https://mod.mcimirror.top/curseforge/v1",
+  "modrinth_api_base": "https://mod.mcimirror.top/modrinth/v2",
   "user_agent": "myname/1.0 (me@example.com)"
 }
 ```
 
-- CurseForge 的搜索/详情/版本接口需要 API key（[申请地址](https://console.curseforge.com)）；`categories` 可匿名访问。
+默认 base 为官方 `https://api.curseforge.com/v1` 与 `https://api.modrinth.com/v2`。
+
+- CurseForge 的官方接口搜索/详情/版本需要 API key（[申请地址](https://console.curseforge.com)）；`categories` 可匿名访问。没有 key 时工具会明确报错并给出解决方式。
 - Modrinth 无需认证，但强制携带 User-Agent（默认 `cubehaul/0.1.0`，可在配置里替换为你的联系方式）。
-- 没有 key 时给出明确报错提示。
+
+### 用只读缓存免 key（MCIM）
+
+[MCIM](https://mod.mcimirror.top) 是 CurseForge + Modrinth 的只读缓存，暴露同构的 v1/v2 JSON 接口且**无需 API key**。把 base 指过去即可在没有 key 时搜索/查询/取版本：
+
+```bash
+cubehaul curseforge search "ae2 lightning" --loader neoforge --game-version 1.21.1 \
+  # 通过环境变量生效：CURSEFORGE_API_BASE=https://mod.mcimirror.top/curseforge/v1
+cubehaul curseforge versions 1527395 --loader neoforge --game-version 1.21.1
+```
+
+注意：MCIM 只缓存 API 数据，**不托管 mod 文件**——它返回的 `downloadUrl` 指向官方 CDN，`download` 仍从 `forgecdn`/`modrinth CDN` 下载。这是第三方社区镜像，仅供开发调试使用，数据可能有延迟。
 
 ## 实现要点
 

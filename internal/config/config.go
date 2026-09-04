@@ -8,17 +8,29 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Config holds global settings.
 type Config struct {
-	CurseForgeAPIKey string `json:"curseforge_api_key"`
-	UserAgent        string `json:"user_agent"`
+	CurseForgeAPIKey  string `json:"curseforge_api_key"`
+	CurseForgeAPIBase string `json:"curseforge_api_base"`
+	ModrinthAPIBase   string `json:"modrinth_api_base"`
+	UserAgent         string `json:"user_agent"`
 }
 
 // DefaultUserAgent is used when no User-Agent is configured.
 // Modrinth requires a User-Agent on every request.
 const DefaultUserAgent = "cubehaul/0.1.0 (contact: set user_agent in ~/.cubehaul/config.json)"
+
+// Default API bases. Users can override these (see Load) to point at a
+// keyless read-only mirror/cache such as MCIM
+// (https://mod.mcimirror.top), which exposes the same CurseForge v1 and
+// Modrinth v2 JSON schemas without authentication.
+const (
+	DefaultCurseForgeBase = "https://api.curseforge.com/v1"
+	DefaultModrinthBase   = "https://api.modrinth.com/v2"
+)
 
 // Load reads configuration. Precedence: environment variable > config file.
 func Load() (*Config, error) {
@@ -39,6 +51,24 @@ func Load() (*Config, error) {
 	if v := os.Getenv("CURSEFORGE_API_KEY"); v != "" {
 		cfg.CurseForgeAPIKey = v
 	}
+	if v := os.Getenv("CURSEFORGE_API_BASE"); v != "" {
+		cfg.CurseForgeAPIBase = v
+	}
+	if v := os.Getenv("MODRINTH_API_BASE"); v != "" {
+		cfg.ModrinthAPIBase = v
+	}
+
+	// Fill in defaults and normalize trailing slashes so that callers can
+	// append paths like "/mods/search" without worrying about double slashes.
+	if cfg.CurseForgeAPIBase == "" {
+		cfg.CurseForgeAPIBase = DefaultCurseForgeBase
+	}
+	if cfg.ModrinthAPIBase == "" {
+		cfg.ModrinthAPIBase = DefaultModrinthBase
+	}
+	cfg.CurseForgeAPIBase = strings.TrimRight(cfg.CurseForgeAPIBase, "/")
+	cfg.ModrinthAPIBase = strings.TrimRight(cfg.ModrinthAPIBase, "/")
+
 	return cfg, nil
 }
 

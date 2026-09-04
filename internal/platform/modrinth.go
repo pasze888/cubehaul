@@ -73,8 +73,12 @@ func NewModrinthClient(cfg *config.Config) *ModrinthClient {
 	if ua == "" {
 		ua = config.DefaultUserAgent
 	}
+	base := cfg.ModrinthAPIBase
+	if base == "" {
+		base = config.DefaultModrinthBase
+	}
 	return &ModrinthClient{
-		base:      "https://api.modrinth.com/v2",
+		base:      base,
 		http:      netx.NewClient(30 * time.Second),
 		userAgent: ua,
 	}

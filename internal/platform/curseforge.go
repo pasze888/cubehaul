@@ -3,7 +3,6 @@ package platform
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +18,12 @@ import (
 // Minecraft game ID on CurseForge.
 const curseForgeGameID = 432
 
+// curseForgeFileStatusApproved is the CurseForge fileStatus enum value that
+// marks a file as Approved and therefore downloadable. Other values
+// (1=Processing, 2=ChangesRequired, 3=UnderReview, 5=Rejected, 7=Deleted,
+// 8=Archived, ...) are files that are not yet or no longer available.
+const curseForgeFileStatusApproved = 4
+
 // curseForgeClassIDs maps --project-type values to CurseForge class IDs.
 var curseForgeClassIDs = map[string]int{
 	"mod":           6,
@@ -33,15 +38,23 @@ var curseForgeClassIDs = map[string]int{
 	"worlds":        17,
 }
 
-// curseForgeLoaderTypes maps --loader values to modLoaderType IDs.
+// curseForgeLoaderTypes maps --loader values to modLoaderType IDs. The enum is
+// fixed by CurseForge and stops at 6: higher ids are rejected outright
+// ("The value 'N' is invalid"), and there is no Rift entry despite the loader
+// name occasionally showing up in a file's gameVersions list.
 var curseForgeLoaderTypes = map[string]int{
 	"forge":      1,
+	"cauldron":   2,
 	"liteloader": 3,
 	"fabric":     4,
 	"quilt":      5,
-	"neoforge":   8,
-	"rift":       7,
+	"neoforge":   6,
 }
+
+// curseForgeSortRelevancy ranks projects by how well they match the search
+// term. It is the only query-aware sort field; every other value orders by a
+// fixed project attribute regardless of what was searched for.
+const curseForgeSortRelevancy = 13
 
 // curseForgeSortFields maps --sort values to sortField IDs.
 var curseForgeSortFields = map[string]int{
@@ -53,6 +66,45 @@ var curseForgeSortFields = map[string]int{
 	"downloads":    6,
 	"category":     7,
 	"game-version": 8,
+	"relevancy":    curseForgeSortRelevancy,
+}
+
+// cfSortQuery resolves the sortField/sortOrder pair to send for a search.
+//
+// A free-text query defaults to Relevancy: it is the only field that ranks by
+// match quality, so without it "search sodium" returns the server's default
+// order and buries the actual Sodium. Relevancy means nothing without a term,
+// so filtered listings (empty query) still send no sortField at all.
+//
+// Relevancy scores are "bigger is better", and the API spec declares no default
+// for sortOrder — empirically an omitted sortOrder behaves like asc, which would
+// invert the ranking — so desc is pinned unless --sort-order overrides it. Other
+// sort fields keep their existing behavior of omitting the direction.
+func cfSortQuery(o SearchOptions) (int, string, error) {
+	order := strings.ToLower(o.SortOrder)
+	if order != "" && order != "asc" && order != "desc" {
+		return 0, "", fmt.Errorf("invalid --sort-order %q (use asc or desc)", o.SortOrder)
+	}
+
+	field := 0
+	switch {
+	case o.Sort != "":
+		f, ok := curseForgeSortFields[strings.ToLower(o.Sort)]
+		if !ok {
+			return 0, "", fmt.Errorf("unsupported sort %q for curseforge (supported: featured, popularity, updated, name, author, downloads, category, game-version, relevancy)", o.Sort)
+		}
+		field = f
+	case o.Query != "":
+		field = curseForgeSortRelevancy
+	}
+	if field == 0 {
+		// Nothing to order by; a lone sortOrder would be meaningless.
+		return 0, "", nil
+	}
+	if order == "" && field == curseForgeSortRelevancy {
+		order = "desc"
+	}
+	return field, order, nil
 }
 
 // cfLoaderNames are loader names that appear in file gameVersions lists.
@@ -67,15 +119,21 @@ type CurseForgeClient struct {
 }
 
 // NewCurseForgeClient creates a CurseForge API client. The API key is
-// optional at construction: categories are accessible anonymously, other
-// endpoints call requireKey() and fail with a clear message.
+// optional: when none is configured the client still issues requests, which
+// works against keyless read-only mirrors/caches (e.g. MCIM). Against the
+// official api.curseforge.com a missing key yields an authenticated 403 with
+// a hint (see do()).
 func NewCurseForgeClient(cfg *config.Config) *CurseForgeClient {
 	ua := cfg.UserAgent
 	if ua == "" {
 		ua = config.DefaultUserAgent
 	}
+	base := cfg.CurseForgeAPIBase
+	if base == "" {
+		base = config.DefaultCurseForgeBase
+	}
 	return &CurseForgeClient{
-		base:      "https://api.curseforge.com/v1",
+		base:      base,
 		http:      netx.NewClient(30 * time.Second),
 		apiKey:    cfg.CurseForgeAPIKey,
 		userAgent: ua,
@@ -83,13 +141,6 @@ func NewCurseForgeClient(cfg *config.Config) *CurseForgeClient {
 }
 
 func (c *CurseForgeClient) Name() string { return PlatformCurseForge }
-
-func (c *CurseForgeClient) requireKey() error {
-	if c.apiKey == "" {
-		return errors.New(`CurseForge API key is required for this operation. Set the CURSEFORGE_API_KEY environment variable or add "curseforge_api_key" to ~/.cubehaul/config.json. Get a key at https://console.curseforge.com`)
-	}
-	return nil
-}
 
 // do performs a GET request and decodes JSON into out.
 func (c *CurseForgeClient) do(ctx context.Context, path string, q url.Values, out any) error {
@@ -118,6 +169,11 @@ func (c *CurseForgeClient) do(ctx context.Context, path string, q url.Values, ou
 		}
 		if json.Unmarshal(body, &apiErr) == nil && apiErr.ErrorMessage != "" {
 			return fmt.Errorf("curseforge API %s: %s", resp.Status, apiErr.ErrorMessage)
+		}
+		// The official API rejects unauthenticated requests with 403; the bare
+		// message is confusing, so point the user at a fix.
+		if resp.StatusCode == http.StatusForbidden && c.apiKey == "" && c.base == config.DefaultCurseForgeBase {
+			return fmt.Errorf("curseforge API %s: missing API key. Set CURSEFORGE_API_KEY (or \"curseforge_api_key\" in ~/.cubehaul/config.json) to use the official API, or point CURSEFORGE_API_BASE at a keyless mirror such as https://mod.mcimirror.top/curseforge/v1", resp.Status)
 		}
 		return fmt.Errorf("curseforge API %d %s: %s", resp.StatusCode, resp.Status, strings.TrimSpace(string(body)))
 	}
@@ -172,17 +228,11 @@ func (m cfMod) project() Project {
 func (c *CurseForgeClient) Search(ctx context.Context, o SearchOptions) ([]Project, error) {
 	// modId is not a search parameter: fetch the mod directly.
 	if o.ModID > 0 {
-		if err := c.requireKey(); err != nil {
-			return nil, err
-		}
 		p, err := c.GetProject(ctx, strconv.Itoa(o.ModID))
 		if err != nil {
 			return nil, err
 		}
 		return []Project{*p}, nil
-	}
-	if err := c.requireKey(); err != nil {
-		return nil, err
 	}
 
 	q := url.Values{}
@@ -219,7 +269,7 @@ func (c *CurseForgeClient) Search(ctx context.Context, o SearchOptions) ([]Proje
 	if len(o.Loaders) > 0 {
 		id, ok := curseForgeLoaderTypes[strings.ToLower(o.Loaders[0])]
 		if !ok {
-			return nil, fmt.Errorf("unsupported loader %q for curseforge (supported: forge, fabric, quilt, neoforge, rift, liteloader)", o.Loaders[0])
+			return nil, fmt.Errorf("unsupported loader %q for curseforge (supported: forge, cauldron, liteloader, fabric, quilt, neoforge)", o.Loaders[0])
 		}
 		q.Set("modLoaderType", strconv.Itoa(id))
 	}
@@ -229,19 +279,15 @@ func (c *CurseForgeClient) Search(ctx context.Context, o SearchOptions) ([]Proje
 	if o.Slug != "" {
 		q.Set("slug", o.Slug)
 	}
-	if o.Sort != "" {
-		f, ok := curseForgeSortFields[strings.ToLower(o.Sort)]
-		if !ok {
-			return nil, fmt.Errorf("unsupported sort %q for curseforge (supported: featured, popularity, updated, name, author, downloads)", o.Sort)
-		}
-		q.Set("sortField", strconv.Itoa(f))
+	field, order, err := cfSortQuery(o)
+	if err != nil {
+		return nil, err
 	}
-	if o.SortOrder != "" {
-		so := strings.ToLower(o.SortOrder)
-		if so != "asc" && so != "desc" {
-			return nil, fmt.Errorf("invalid --sort-order %q (use asc or desc)", o.SortOrder)
-		}
-		q.Set("sortOrder", so)
+	if field > 0 {
+		q.Set("sortField", strconv.Itoa(field))
+	}
+	if order != "" {
+		q.Set("sortOrder", order)
 	}
 	pageSize := 10
 	if o.Limit > 0 {
@@ -273,9 +319,6 @@ func (c *CurseForgeClient) Search(ctx context.Context, o SearchOptions) ([]Proje
 }
 
 func (c *CurseForgeClient) GetProject(ctx context.Context, id string) (*Project, error) {
-	if err := c.requireKey(); err != nil {
-		return nil, err
-	}
 	modID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, fmt.Errorf("curseforge project id must be numeric, got %q", id)
@@ -331,9 +374,6 @@ func inferCFLoaders(gameVersions []string) []string {
 }
 
 func (c *CurseForgeClient) ListVersions(ctx context.Context, projectID string, loaders, gameVersions []string) ([]Version, error) {
-	if err := c.requireKey(); err != nil {
-		return nil, err
-	}
 	modID, err := strconv.Atoi(projectID)
 	if err != nil {
 		return nil, fmt.Errorf("curseforge project id must be numeric, got %q", projectID)
@@ -349,7 +389,9 @@ func (c *CurseForgeClient) ListVersions(ctx context.Context, projectID string, l
 	}
 	versions := make([]Version, 0, len(resp.Data))
 	for _, f := range resp.Data {
-		if f.FileStatus != 1 { // 1 = OK; skip under-review/removed files
+		// CurseForge fileStatus enum: 1=Processing, 4=Approved. Only Approved
+		// files are downloadable; skip processing/under-review/removed/etc.
+		if f.FileStatus != curseForgeFileStatusApproved {
 			continue
 		}
 		versions = append(versions, Version{

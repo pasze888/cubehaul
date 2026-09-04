@@ -16,9 +16,11 @@ func newCurseforgeCmd() *cobra.Command {
 		Use:     "curseforge",
 		Aliases: []string{"cf"},
 		Short:   "Work with CurseForge (api.curseforge.com)",
-		Long: `Operate on CurseForge projects. Most operations require an API key: set
+		Long: `Operate on CurseForge projects. The official API requires a key: set
 CURSEFORGE_API_KEY or add "curseforge_api_key" to ~/.cubehaul/config.json
-(get a key at https://console.curseforge.com).`,
+(get a key at https://console.curseforge.com). Alternatively, point
+CURSEFORGE_API_BASE at a keyless read-only cache such as
+https://mod.mcimirror.top/curseforge/v1.`,
 	}
 	cmd.AddCommand(
 		newCurseforgeSearchCmd(),
@@ -52,7 +54,11 @@ func newCurseforgeSearchCmd() *cobra.Command {
 The query is optional: omitting it lists projects filtered by the given flags.
 
 CurseForge has no facet system; --raw-param passes arbitrary query parameters
-through verbatim, e.g. --raw-param 'gameVersion=1.20.1'.`,
+through verbatim, e.g. --raw-param 'gameVersion=1.20.1'.
+
+With a query and no --sort, results are ranked by relevance (sortField=13,
+descending). Relevance is undefined for a term-less filtered search, so those
+keep the API's own default order.`,
 		Example: `  cubehaul curseforge search sodium --loader forge
   cubehaul curseforge search "" --category technology --sort downloads
   cubehaul curseforge search --mod-id 394468`,
