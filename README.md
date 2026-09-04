@@ -42,7 +42,7 @@ cubehaul cf info 394468
 
 所有输出命令均支持 `--json`。
 
-> `download` 默认保存到**系统下载文件夹**（Windows 取 `FOLDERID_Downloads`，兼容 OneDrive 重定向；Linux 读 `XDG_DOWNLOAD_DIR`，回退 `~/Downloads`），目录不存在会自动创建。拿不到时直接报错并提示传 `--output-dir`，不会静默写到意外位置。它**不会**自动寻找某个 Minecraft 实例的 mods 目录，要直接落到实例里请显式指定 `--output-dir`。
+> `download` 默认保存到**系统下载文件夹**（Windows 取 `FOLDERID_Downloads`，兼容 OneDrive 重定向；Linux 读 `XDG_DOWNLOAD_DIR`，回退 `~/Downloads`），目录不存在会自动创建。解析不到时直接报错，需显式传 `--output-dir`。它**不会**自动寻找某个 Minecraft 实例的 mods 目录，要直接落到实例里请显式指定 `--output-dir`。
 
 ## 搜索过滤
 
@@ -57,7 +57,9 @@ cubehaul cf info 394468
 | `--sort` | modrinth: relevance/downloads/follows/newest/updated；curseforge: relevancy/featured/popularity/updated/name/author/downloads/category/game-version |
 | `--limit` / `--offset` | 分页（CF 单页上限 50） |
 
-> **缺省排序**：带查询词时两个平台都按**相关度**排（Modrinth 的 `relevance`、CurseForge 的 `relevancy`/`sortField=13`，并显式发 `sortOrder=desc`，因为 CF 省略 `sortOrder` 时实测等价于升序，会把最匹配的踩到最后）。CF 的纯过滤搜索（query 为空，如 `search "" --category technology`）不发 sortField，用服务端默认序——空查询下相关度无定义。`--sort` 显式指定时以你传的为准。
+> **缺省排序**：带查询词时两个平台都按**相关度**排（Modrinth 的 `relevance`、CurseForge 的 `relevancy`/`sortField=13`）。CF 的纯过滤搜索（query 为空，如 `search "" --category technology`）不发 sortField，用服务端默认序——空查询下相关度无定义。
+>
+> CF 的排序方向总会显式发出：`popularity`/`updated`/`downloads`/`relevancy` 走 `desc`，`name`/`author` 走 `asc`，`featured`/`category`/`game-version` 不指定（沿用服务端顺序）。`--sort-order` 可覆盖。
 
 ### Modrinth 专有（facet 精细控制）
 

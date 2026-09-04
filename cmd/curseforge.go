@@ -56,9 +56,12 @@ The query is optional: omitting it lists projects filtered by the given flags.
 CurseForge has no facet system; --raw-param passes arbitrary query parameters
 through verbatim, e.g. --raw-param 'gameVersion=1.20.1'.
 
-With a query and no --sort, results are ranked by relevance (sortField=13,
-descending). Relevance is undefined for a term-less filtered search, so those
-keep the API's own default order.`,
+With a query and no --sort, results are ranked by relevance (sortField=13).
+The sort direction is always sent explicitly when a field has a meaningful one
+-- desc for popularity/updated/downloads/relevancy, asc for name/author --
+because the API leaves sortOrder undocumented and empirically treats an omitted
+one as ascending. --sort-order overrides it. Relevance is undefined for a
+term-less filtered search, so those keep the API's own default order.`,
 		Example: `  cubehaul curseforge search sodium --loader forge
   cubehaul curseforge search "" --category technology --sort downloads
   cubehaul curseforge search --mod-id 394468`,

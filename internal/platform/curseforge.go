@@ -51,22 +51,50 @@ var curseForgeLoaderTypes = map[string]int{
 	"neoforge":   6,
 }
 
-// curseForgeSortRelevancy ranks projects by how well they match the search
-// term. It is the only query-aware sort field; every other value orders by a
-// fixed project attribute regardless of what was searched for.
-const curseForgeSortRelevancy = 13
+// CurseForge sortField ids (ModsSearchSortField).
+const (
+	curseForgeSortFeatured    = 1
+	curseForgeSortPopularity  = 2
+	curseForgeSortLastUpdated = 3
+	curseForgeSortName        = 4
+	curseForgeSortAuthor      = 5
+	curseForgeSortDownloads   = 6
+	curseForgeSortCategory    = 7
+	curseForgeSortGameVersion = 8
+	// curseForgeSortRelevancy ranks by how well a project matches the search
+	// term. It is the only query-aware sort field; every other value orders by a
+	// fixed project attribute regardless of what was searched for.
+	curseForgeSortRelevancy = 13
+)
 
 // curseForgeSortFields maps --sort values to sortField IDs.
 var curseForgeSortFields = map[string]int{
-	"featured":     1,
-	"popularity":   2,
-	"updated":      3,
-	"name":         4,
-	"author":       5,
-	"downloads":    6,
-	"category":     7,
-	"game-version": 8,
+	"featured":     curseForgeSortFeatured,
+	"popularity":   curseForgeSortPopularity,
+	"updated":      curseForgeSortLastUpdated,
+	"name":         curseForgeSortName,
+	"author":       curseForgeSortAuthor,
+	"downloads":    curseForgeSortDownloads,
+	"category":     curseForgeSortCategory,
+	"game-version": curseForgeSortGameVersion,
 	"relevancy":    curseForgeSortRelevancy,
+}
+
+// curseForgeSortDirections is the direction that makes each field mean what its
+// name promises. The spec declares no default for sortOrder and an omitted one
+// behaves like asc, so "bigger is better" fields come back inverted unless the
+// direction is sent explicitly: --sort downloads would otherwise bury the most
+// downloaded mod at the end of the result set.
+//
+// Featured, category and game version are deliberately absent: they are not
+// monotonic quality signals, so the server's own ordering is kept.
+var curseForgeSortDirections = map[int]string{
+	curseForgeSortPopularity:  "desc",
+	curseForgeSortLastUpdated: "desc",
+	curseForgeSortDownloads:   "desc",
+	curseForgeSortRelevancy:   "desc",
+	curseForgeSortName:        "asc",
+	curseForgeSortAuthor:      "asc",
 }
 
 // cfSortQuery resolves the sortField/sortOrder pair to send for a search.
@@ -76,10 +104,9 @@ var curseForgeSortFields = map[string]int{
 // order and buries the actual Sodium. Relevancy means nothing without a term,
 // so filtered listings (empty query) still send no sortField at all.
 //
-// Relevancy scores are "bigger is better", and the API spec declares no default
-// for sortOrder — empirically an omitted sortOrder behaves like asc, which would
-// invert the ranking — so desc is pinned unless --sort-order overrides it. Other
-// sort fields keep their existing behavior of omitting the direction.
+// The direction comes from --sort-order when given, otherwise from
+// curseForgeSortDirections, so an implied or explicit sort field is never left
+// to the undocumented server default.
 func cfSortQuery(o SearchOptions) (int, string, error) {
 	order := strings.ToLower(o.SortOrder)
 	if order != "" && order != "asc" && order != "desc" {
@@ -101,8 +128,9 @@ func cfSortQuery(o SearchOptions) (int, string, error) {
 		// Nothing to order by; a lone sortOrder would be meaningless.
 		return 0, "", nil
 	}
-	if order == "" && field == curseForgeSortRelevancy {
-		order = "desc"
+	if order == "" {
+		// Missing key yields "": the field has no implied direction.
+		order = curseForgeSortDirections[field]
 	}
 	return field, order, nil
 }
