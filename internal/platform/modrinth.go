@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -254,7 +255,11 @@ func (c *ModrinthClient) Search(ctx context.Context, o SearchOptions) ([]Project
 		q.Set("index", idx)
 	}
 	if o.Limit > 0 {
-		q.Set("limit", strconv.Itoa(min(o.Limit, 100)))
+		limit, notice := clampSearchLimit(PlatformModrinth, o.Limit, ModrinthMaxSearchLimit)
+		if notice != "" {
+			fmt.Fprint(os.Stderr, notice)
+		}
+		q.Set("limit", strconv.Itoa(limit))
 	}
 	if o.Offset > 0 {
 		q.Set("offset", strconv.Itoa(o.Offset))

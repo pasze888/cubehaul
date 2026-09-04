@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -319,7 +320,11 @@ func (c *CurseForgeClient) Search(ctx context.Context, o SearchOptions) ([]Proje
 	}
 	pageSize := 10
 	if o.Limit > 0 {
-		pageSize = min(o.Limit, 50)
+		ps, notice := clampSearchLimit(PlatformCurseForge, o.Limit, CurseForgeMaxSearchLimit)
+		if notice != "" {
+			fmt.Fprint(os.Stderr, notice)
+		}
+		pageSize = ps
 	}
 	q.Set("pageSize", strconv.Itoa(pageSize))
 	if o.Offset > 0 {
@@ -401,22 +406,76 @@ func inferCFLoaders(gameVersions []string) []string {
 	return out
 }
 
+// cfFilesPageSize is the page size for /mods/{id}/files. Unlike /mods/search
+// (which hard-rejects pageSize > 50 with a 500), the files endpoint accepts
+// large pages (verified: 200 works), so 200 keeps typical projects to a few
+// requests.
+const cfFilesPageSize = 200
+
+// cfFilesMaxFetch caps how many files one ListVersions call pages through,
+// bounding ancient projects with thousands of files; reaching it is announced
+// on stderr. A pushed-down gameVersion/modLoaderType filter usually keeps the
+// matching set far below the cap.
+const cfFilesMaxFetch = 1000
+
 func (c *CurseForgeClient) ListVersions(ctx context.Context, projectID string, loaders, gameVersions []string) ([]Version, error) {
 	modID, err := strconv.Atoi(projectID)
 	if err != nil {
 		return nil, fmt.Errorf("curseforge project id must be numeric, got %q", projectID)
 	}
-	q := url.Values{}
-	q.Set("pageSize", "50")
 
-	var resp struct {
-		Data []cfFile `json:"data"`
+	// Single-valued filters can be pushed down: the endpoint accepts one
+	// gameVersion and one modLoaderType, ANDs them, and reports the filtered
+	// set size in pagination.totalCount. Multi-valued filters stay client-side.
+	pushdown := url.Values{}
+	if len(loaders) == 1 {
+		if id, ok := curseForgeLoaderTypes[strings.ToLower(loaders[0])]; ok {
+			pushdown.Set("modLoaderType", strconv.Itoa(id))
+		}
 	}
-	if err := c.do(ctx, "/mods/"+strconv.Itoa(modID)+"/files", q, &resp); err != nil {
-		return nil, err
+	if len(gameVersions) == 1 {
+		pushdown.Set("gameVersion", gameVersions[0])
 	}
-	versions := make([]Version, 0, len(resp.Data))
-	for _, f := range resp.Data {
+
+	var files []cfFile
+	fetched := 0
+	capped := false
+	for {
+		q := url.Values{}
+		for k, vs := range pushdown {
+			q[k] = vs
+		}
+		q.Set("pageSize", strconv.Itoa(cfFilesPageSize))
+		q.Set("index", strconv.Itoa(fetched))
+
+		var resp struct {
+			Data       []cfFile `json:"data"`
+			Pagination struct {
+				TotalCount int `json:"totalCount"`
+			} `json:"pagination"`
+		}
+		if err := c.do(ctx, "/mods/"+strconv.Itoa(modID)+"/files", q, &resp); err != nil {
+			return nil, err
+		}
+		files = append(files, resp.Data...)
+		fetched += len(resp.Data)
+
+		total := resp.Pagination.TotalCount
+		if total > cfFilesMaxFetch {
+			if !capped { // announce once, on the page that revealed the size
+				capped = true
+				fmt.Fprintf(os.Stderr, "cubehaul: curseforge: project %s has %d matching files, fetching only the newest %d (narrow the filters to see more)\n",
+					projectID, total, cfFilesMaxFetch)
+			}
+			total = cfFilesMaxFetch
+		}
+		if len(resp.Data) == 0 || fetched >= total || len(resp.Data) < cfFilesPageSize {
+			break
+		}
+	}
+
+	versions := make([]Version, 0, len(files))
+	for _, f := range files {
 		// CurseForge fileStatus enum: 1=Processing, 4=Approved. Only Approved
 		// files are downloadable; skip processing/under-review/removed/etc.
 		if f.FileStatus != curseForgeFileStatusApproved {
@@ -442,7 +501,8 @@ func (c *CurseForgeClient) ListVersions(ctx context.Context, projectID string, l
 	}
 	sortVersionsByDate(versions)
 
-	// CurseForge cannot filter files by loader/version server-side; filter here.
+	// Client-side filter stays as the fallback: it covers multi-valued
+	// filters (not pushed down) and re-checks whatever was pushed down.
 	if len(loaders) > 0 || len(gameVersions) > 0 {
 		filtered := versions[:0]
 		for _, v := range versions {

@@ -72,7 +72,7 @@ into "download --version-id".`,
 	f := cmd.Flags()
 	f.StringSliceVar(&flags.loaders, "loader", nil, "only versions for this loader (repeatable)")
 	f.StringSliceVar(&flags.gameVersions, "game-version", nil, "only versions for this game version (repeatable)")
-	f.IntVar(&flags.limit, "limit", 50, "max versions to show (curseforge returns at most 50 per request)")
+	f.IntVar(&flags.limit, "limit", 50, "max versions to show")
 	return cmd
 }
 

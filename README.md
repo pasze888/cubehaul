@@ -55,7 +55,7 @@ cubehaul cf info 394468
 | `--loader` | fabric / forge / neoforge / quilt / ...，可重复 |
 | `--game-version` | 如 1.20.1，可重复 |
 | `--sort` | modrinth: relevance/downloads/follows/newest/updated；curseforge: relevancy/featured/popularity/updated/name/author/downloads/category/game-version |
-| `--limit` / `--offset` | 分页（CF 单页上限 50） |
+| `--limit` / `--offset` | 分页（单页上限：modrinth 100、curseforge 50；超限会钳制并在 stderr 提示，用 `--offset` 翻页） |
 
 > **缺省排序**：带查询词时两个平台都按**相关度**排（Modrinth 的 `relevance`、CurseForge 的 `relevancy`/`sortField=13`）。CF 的纯过滤搜索（query 为空，如 `search "" --category technology`）不发 sortField，用服务端默认序——空查询下相关度无定义。
 >
@@ -131,3 +131,4 @@ export CURSEFORGE_API_KEY=xxxxxxxx
 - 下载走 `.part` 临时文件 + 大小校验，失败自动清理
 - 限流注意：Modrinth 300 req/min，CurseForge 50 req/10s；429/5xx/网络抖动自动重试——共 4 次尝试、指数退避加随机抖动（750ms 起步、8s 封顶）、尊重 `Retry-After`（封顶 30s），每次重试提示到 stderr
 - 重试覆盖 API 请求与下载的建连阶段；下载传输中途断开不重试，重跑命令即可（`.part` 会重写）
+- CurseForge `versions`：单值 `--loader`/`--game-version` 下推为服务端过滤（`modLoaderType`/`gameVersion`），按 `index` 翻页（pageSize 200），最多取 1000 条并提示；多值过滤回退为全量拉取后客户端过滤

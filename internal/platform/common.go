@@ -153,3 +153,23 @@ func anyExact(haystack, needles []string) bool {
 	}
 	return false
 }
+
+// Per-request search limits enforced by each platform's API. Modrinth
+// silently clamps above 100; CurseForge /mods/search rejects pageSize > 50
+// with an HTTP 500, so clamping there also keeps the retry logic from
+// re-issuing a request that can never succeed.
+const (
+	ModrinthMaxSearchLimit   = 100
+	CurseForgeMaxSearchLimit = 50
+)
+
+// clampSearchLimit caps a requested --limit at the platform's per-request
+// max, returning the effective value and a stderr notice when capped. Search
+// stays single-page by design; callers paginate with --offset.
+func clampSearchLimit(platformName string, limit, max int) (effective int, notice string) {
+	if limit <= max {
+		return limit, ""
+	}
+	return max, fmt.Sprintf("cubehaul: %s: --limit %d exceeds the per-request max of %d; showing %d (page with --offset)\n",
+		platformName, limit, max, max)
+}
