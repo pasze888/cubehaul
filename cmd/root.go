@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"cubehaul/internal/version"
 )
 
 // jsonOutput is a persistent flag: print results as JSON instead of tables.
@@ -40,7 +42,7 @@ Configuration:
   "curseforge_api_key" to ~/.cubehaul/config.json (get a key at
   https://console.curseforge.com).
   The config file may also contain a "user_agent" field with your contact info.`,
-	Version: "0.1.0",
+	Version: version.Value(),
 }
 
 // Execute runs the root command.

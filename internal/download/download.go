@@ -19,10 +19,11 @@ import (
 
 // Options for a single download.
 type Options struct {
-	URL      string
-	Filename string
-	Dir      string
-	Size     int64 // expected size in bytes; 0 = unknown
+	URL       string
+	Filename  string
+	Dir       string
+	Size      int64  // expected size in bytes; 0 = unknown
+	UserAgent string // sent as the User-Agent header; callers pass the configured one
 }
 
 // client is created lazily in Run: it shares the system-proxy-aware
@@ -65,7 +66,9 @@ func Run(ctx context.Context, o Options) (res *Result, err error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "cubehaul/0.1.0")
+	if o.UserAgent != "" {
+		req.Header.Set("User-Agent", o.UserAgent)
+	}
 	resp, err := netx.DoWithRetry(ctx, httpClient(), req, netx.RetryOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", o.URL, err)

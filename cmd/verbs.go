@@ -108,7 +108,13 @@ Files are saved into the system Downloads folder unless --output-dir is given.`,
 				return fmt.Errorf("choose a version: --version-id <id>, --latest, or --loader/--game-version")
 			}
 
-			client, err := newPlatformClient(plat)
+			// Load config once: the client and the download's User-Agent
+			// (a configured user_agent applies to CDN fetches too).
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+			client, err := platform.New(plat, cfg)
 			if err != nil {
 				return err
 			}
@@ -177,10 +183,11 @@ Files are saved into the system Downloads folder unless --output-dir is given.`,
 			}
 
 			res, err := download.Run(cmd.Context(), download.Options{
-				URL:      file.URL,
-				Filename: file.Filename,
-				Dir:      dir,
-				Size:     file.Size,
+				URL:       file.URL,
+				Filename:  file.Filename,
+				Dir:       dir,
+				Size:      file.Size,
+				UserAgent: cfg.EffectiveUserAgent(),
 			})
 			if err != nil {
 				return err

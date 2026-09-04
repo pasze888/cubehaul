@@ -56,8 +56,13 @@ jobs:
       - name: Build
         run: |
           mkdir -p dist
+          LDFLAGS="-s -w"
+          # Tag builds carry the version; workflow_dispatch/hand builds report "dev".
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            LDFLAGS="$LDFLAGS -X cubehaul/internal/version.value=$GITHUB_REF_NAME"
+          fi
           CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} \
-            go build -trimpath -ldflags "-s -w" \
+            go build -trimpath -ldflags "$LDFLAGS" \
             -o dist/cubehaul-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} .
       - name: Smoke test
         if: matrix.os == 'linux' && matrix.arch == 'amd64'

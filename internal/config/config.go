@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"cubehaul/internal/version"
 )
 
 // Config holds global settings.
@@ -19,9 +21,22 @@ type Config struct {
 	UserAgent         string `json:"user_agent"`
 }
 
-// DefaultUserAgent is used when no User-Agent is configured.
-// Modrinth requires a User-Agent on every request.
-const DefaultUserAgent = "cubehaul/0.1.0 (contact: set user_agent in ~/.cubehaul/config.json)"
+// DefaultUserAgent is used when no user_agent is configured. It carries the
+// build version (see internal/version); Modrinth requires a User-Agent on
+// every request.
+func DefaultUserAgent() string {
+	return "cubehaul/" + version.Value() + " (contact: set user_agent in ~/.cubehaul/config.json)"
+}
+
+// EffectiveUserAgent returns the configured user_agent, falling back to
+// DefaultUserAgent when none is set. All HTTP traffic — API clients and
+// file downloads — sends this.
+func (c *Config) EffectiveUserAgent() string {
+	if c.UserAgent != "" {
+		return c.UserAgent
+	}
+	return DefaultUserAgent()
+}
 
 // Default API bases. Users can override these (see Load), e.g. to point at
 // a compatible read-only mirror/cache exposing the same CurseForge v1 and

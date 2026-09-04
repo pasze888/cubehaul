@@ -153,10 +153,6 @@ type CurseForgeClient struct {
 // official api.curseforge.com a missing key yields an authenticated 403 with
 // a hint (see do()).
 func NewCurseForgeClient(cfg *config.Config) *CurseForgeClient {
-	ua := cfg.UserAgent
-	if ua == "" {
-		ua = config.DefaultUserAgent
-	}
 	base := cfg.CurseForgeAPIBase
 	if base == "" {
 		base = config.DefaultCurseForgeBase
@@ -165,7 +161,7 @@ func NewCurseForgeClient(cfg *config.Config) *CurseForgeClient {
 		base:      base,
 		http:      netx.NewClient(30 * time.Second),
 		apiKey:    cfg.CurseForgeAPIKey,
-		userAgent: ua,
+		userAgent: cfg.EffectiveUserAgent(),
 	}
 }
 

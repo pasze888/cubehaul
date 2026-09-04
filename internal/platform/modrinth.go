@@ -70,10 +70,6 @@ type ModrinthClient struct {
 // NewModrinthClient creates a Modrinth API client. Modrinth requires no
 // authentication but demands a User-Agent on every request.
 func NewModrinthClient(cfg *config.Config) *ModrinthClient {
-	ua := cfg.UserAgent
-	if ua == "" {
-		ua = config.DefaultUserAgent
-	}
 	base := cfg.ModrinthAPIBase
 	if base == "" {
 		base = config.DefaultModrinthBase
@@ -81,7 +77,7 @@ func NewModrinthClient(cfg *config.Config) *ModrinthClient {
 	return &ModrinthClient{
 		base:      base,
 		http:      netx.NewClient(30 * time.Second),
-		userAgent: ua,
+		userAgent: cfg.EffectiveUserAgent(),
 	}
 }
 

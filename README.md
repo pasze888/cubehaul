@@ -122,7 +122,7 @@ export CURSEFORGE_API_KEY=xxxxxxxx
 默认 base 为官方 `https://api.curseforge.com/v1` 与 `https://api.modrinth.com/v2`，可用 `CURSEFORGE_API_BASE` / `MODRINTH_API_BASE`（或配置文件里的 `curseforge_api_base` / `modrinth_api_base` 字段）覆盖。
 
 - CurseForge 的官方接口搜索/详情/版本需要 API key（[申请地址](https://console.curseforge.com)）；`categories` 可匿名访问。没有 key 时工具会明确报错并给出解决方式。
-- Modrinth 无需认证，但强制携带 User-Agent（默认 `cubehaul/0.1.0`，可在配置里替换为你的联系方式）。
+- Modrinth 无需认证，但强制携带 User-Agent（默认 `cubehaul/<版本>`，可在配置里替换为你的联系方式）。
 
 ## 实现要点
 
@@ -132,3 +132,4 @@ export CURSEFORGE_API_KEY=xxxxxxxx
 - 限流注意：Modrinth 300 req/min，CurseForge 50 req/10s；429/5xx/网络抖动自动重试——共 4 次尝试、指数退避加随机抖动（750ms 起步、8s 封顶）、尊重 `Retry-After`（封顶 30s），每次重试提示到 stderr
 - 重试覆盖 API 请求与下载的建连阶段；下载传输中途断开不重试，重跑命令即可（`.part` 会重写）
 - CurseForge `versions`：单值 `--loader`/`--game-version` 下推为服务端过滤（`modLoaderType`/`gameVersion`），按 `index` 翻页（pageSize 200），最多取 1000 条并提示；多值过滤回退为全量拉取后客户端过滤
+- 版本号单一来源 `internal/version`：源码默认 `dev`，release 由 tag 经 `-ldflags -X cubehaul/internal/version.value=<tag>` 注入；`--version` 与默认 User-Agent 共用它（配置了 `user_agent` 时 API 与下载都随其发送）
