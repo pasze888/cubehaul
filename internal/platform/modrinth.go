@@ -97,7 +97,7 @@ func (c *ModrinthClient) do(ctx context.Context, path string, q url.Values, out 
 		return err
 	}
 	req.Header.Set("User-Agent", c.userAgent)
-	resp, err := c.http.Do(req)
+	resp, err := netx.DoWithRetry(ctx, c.http, req, netx.RetryOptions{})
 	if err != nil {
 		return err
 	}

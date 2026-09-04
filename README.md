@@ -129,4 +129,5 @@ export CURSEFORGE_API_KEY=xxxxxxxx
 - `internal/platform`：两个平台的客户端 + 统一 `Platform` 接口（Search/GetProject/ListVersions/Categories），`SearchOptions` 承载全部分支参数，各平台 `BuildQuery` 自行映射
 - CurseForge 文件 `downloadUrl` 为空时按 `fileId/1000 / fileId%1000` 拼 ForgeCDN 链接
 - 下载走 `.part` 临时文件 + 大小校验，失败自动清理
-- 限流注意：Modrinth 300 req/min，CurseForge 50 req/10s
+- 限流注意：Modrinth 300 req/min，CurseForge 50 req/10s；429/5xx/网络抖动自动重试——共 4 次尝试、指数退避加随机抖动（750ms 起步、8s 封顶）、尊重 `Retry-After`（封顶 30s），每次重试提示到 stderr
+- 重试覆盖 API 请求与下载的建连阶段；下载传输中途断开不重试，重跑命令即可（`.part` 会重写）

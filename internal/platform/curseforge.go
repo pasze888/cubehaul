@@ -184,7 +184,7 @@ func (c *CurseForgeClient) do(ctx context.Context, path string, q url.Values, ou
 		req.Header.Set("x-api-key", c.apiKey)
 	}
 	req.Header.Set("User-Agent", c.userAgent)
-	resp, err := c.http.Do(req)
+	resp, err := netx.DoWithRetry(ctx, c.http, req, netx.RetryOptions{})
 	if err != nil {
 		return err
 	}

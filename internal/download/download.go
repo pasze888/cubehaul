@@ -66,7 +66,7 @@ func Run(ctx context.Context, o Options) (res *Result, err error) {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "cubehaul/0.1.0")
-	resp, err := httpClient().Do(req)
+	resp, err := netx.DoWithRetry(ctx, httpClient(), req, netx.RetryOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", o.URL, err)
 	}
