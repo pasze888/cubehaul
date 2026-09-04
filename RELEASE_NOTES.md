@@ -1,3 +1,21 @@
+## CubeHaul v0.2.0
+
+### 变更
+
+- **自动重试**：429/5xx/网络抖动自动重试——共 4 次尝试、指数退避加随机抖动（750ms 起步、8s 封顶）、尊重 `Retry-After`（封顶 30s），每次重试提示到 stderr；脚本化批量使用不再一遇限流就失败
+- **CurseForge 版本列表取全**：`versions` 对单值 `--loader`/`--game-version` 做服务端下推（`modLoaderType`/`gameVersion`）并按 `index` 翻页（pageSize 200、上限 1000 条并提示）——热门项目不再只见前 50 个文件
+- **`--limit` 诚实化**：超过平台单页上限（Modrinth 100、CurseForge 50）时钳制并在 stderr 提示，不再静默截断；分页用 `--offset`
+- **版本号单一来源**：`--version` 与默认 User-Agent 由 tag 经 `-ldflags -X` 注入，tag 即事实来源；手编包报 `dev`；配置的 `user_agent` 现在对 CDN 下载同样生效
+- 文档与 403 报错移除第三方镜像示例（API base 覆盖能力保留）
+
+### 平台
+
+| 文件 | 平台 |
+|---|---|
+| `cubehaul-windows-amd64.exe` | Windows x64 |
+| `cubehaul-linux-amd64` / `cubehaul-linux-arm64` | Linux |
+| `cubehaul-darwin-amd64` / `cubehaul-darwin-arm64` | macOS |
+
 ## CubeHaul v0.1.0 — haul cubes from the mod mines
 
 搜索、查看、下载 Minecraft 模组，同时支持 **Modrinth** 和 **CurseForge** 的 Go CLI 工具。
