@@ -8,6 +8,8 @@
 go build -o cubehaul .
 ```
 
+手编包的 `cubehaul --version` 报 `dev`；正式版本号由 release tag 构建时注入。
+
 ## 命令
 
 所有命令都挂在平台子命令下（`cubehaul modrinth ...` / `cubehaul curseforge ...`，各自只暴露本平台支持的 flag）。两个平台子命令都有缩写：`modrinth` → `mr`、`curseforge` → `cf`：
@@ -124,12 +126,6 @@ export CURSEFORGE_API_KEY=xxxxxxxx
 - CurseForge 的官方接口搜索/详情/版本需要 API key（[申请地址](https://console.curseforge.com)）；`categories` 可匿名访问。没有 key 时工具会明确报错并给出解决方式。
 - Modrinth 无需认证，但强制携带 User-Agent（默认 `cubehaul/<版本>`，可在配置里替换为你的联系方式）。
 
-## 实现要点
+## 限流与重试
 
-- `internal/platform`：两个平台的客户端 + 统一 `Platform` 接口（Search/GetProject/ListVersions/Categories），`SearchOptions` 承载全部分支参数，各平台 `BuildQuery` 自行映射
-- CurseForge 文件 `downloadUrl` 为空时按 `fileId/1000 / fileId%1000` 拼 ForgeCDN 链接
-- 下载走 `.part` 临时文件 + 大小校验，失败自动清理
-- 限流注意：Modrinth 300 req/min，CurseForge 50 req/10s；429/5xx/网络抖动自动重试——共 4 次尝试、指数退避加随机抖动（750ms 起步、8s 封顶）、尊重 `Retry-After`（封顶 30s），每次重试提示到 stderr
-- 重试覆盖 API 请求与下载的建连阶段；下载传输中途断开不重试，重跑命令即可（`.part` 会重写）
-- CurseForge `versions`：单值 `--loader`/`--game-version` 下推为服务端过滤（`modLoaderType`/`gameVersion`），按 `index` 翻页（pageSize 200），最多取 1000 条并提示；多值过滤回退为全量拉取后客户端过滤
-- 版本号单一来源 `internal/version`：源码默认 `dev`，release 由 tag 经 `-ldflags -X cubehaul/internal/version.value=<tag>` 注入；`--version` 与默认 User-Agent 共用它（配置了 `user_agent` 时 API 与下载都随其发送）
+API 请求和文件下载对限流（429）、服务端临时错误（5xx）和网络抖动会自动重试（最多 4 次，尊重 `Retry-After`，过程提示到 stderr）。限流额度：Modrinth 300 req/min，CurseForge 50 req/10s。下载在传输中途断开不会续传，重跑命令即可。
