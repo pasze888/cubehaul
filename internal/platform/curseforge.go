@@ -148,7 +148,7 @@ type CurseForgeClient struct {
 
 // NewCurseForgeClient creates a CurseForge API client. The API key is
 // optional: when none is configured the client still issues requests, which
-// works against keyless read-only mirrors/caches (e.g. MCIM). Against the
+// works against keyless read-only mirrors/caches. Against the
 // official api.curseforge.com a missing key yields an authenticated 403 with
 // a hint (see do()).
 func NewCurseForgeClient(cfg *config.Config) *CurseForgeClient {
@@ -201,7 +201,7 @@ func (c *CurseForgeClient) do(ctx context.Context, path string, q url.Values, ou
 		// The official API rejects unauthenticated requests with 403; the bare
 		// message is confusing, so point the user at a fix.
 		if resp.StatusCode == http.StatusForbidden && c.apiKey == "" && c.base == config.DefaultCurseForgeBase {
-			return fmt.Errorf("curseforge API %s: missing API key. Set CURSEFORGE_API_KEY (or \"curseforge_api_key\" in ~/.cubehaul/config.json) to use the official API, or point CURSEFORGE_API_BASE at a keyless mirror such as https://mod.mcimirror.top/curseforge/v1", resp.Status)
+			return fmt.Errorf("curseforge API %s: missing API key. Set CURSEFORGE_API_KEY (or \"curseforge_api_key\" in ~/.cubehaul/config.json) to use the official API", resp.Status)
 		}
 		return fmt.Errorf("curseforge API %d %s: %s", resp.StatusCode, resp.Status, strings.TrimSpace(string(body)))
 	}

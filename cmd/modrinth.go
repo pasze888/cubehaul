@@ -18,9 +18,7 @@ func newModrinthCmd() *cobra.Command {
 		Aliases: []string{"mr"},
 		Short:   "Work with Modrinth (api.modrinth.com)",
 		Long: `Operate on Modrinth projects. No authentication is required; a User-Agent
-is set automatically. Set MODRINTH_API_BASE (or "modrinth_api_base" in
-~/.cubehaul/config.json) to point at a mirror/cache such as
-https://mod.mcimirror.top/modrinth/v2.`,
+is set automatically.`,
 	}
 	cmd.AddCommand(
 		newModrinthSearchCmd(),

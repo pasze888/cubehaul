@@ -18,9 +18,7 @@ func newCurseforgeCmd() *cobra.Command {
 		Short:   "Work with CurseForge (api.curseforge.com)",
 		Long: `Operate on CurseForge projects. The official API requires a key: set
 CURSEFORGE_API_KEY or add "curseforge_api_key" to ~/.cubehaul/config.json
-(get a key at https://console.curseforge.com). Alternatively, point
-CURSEFORGE_API_BASE at a keyless read-only cache such as
-https://mod.mcimirror.top/curseforge/v1.`,
+(get a key at https://console.curseforge.com).`,
 	}
 	cmd.AddCommand(
 		newCurseforgeSearchCmd(),

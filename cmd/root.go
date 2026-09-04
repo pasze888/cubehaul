@@ -38,10 +38,7 @@ Configuration:
   Modrinth needs no key but requires a User-Agent, which is set automatically.
   CurseForge's official API requires a key: set CURSEFORGE_API_KEY or add
   "curseforge_api_key" to ~/.cubehaul/config.json (get a key at
-  https://console.curseforge.com). Without a key you can still use a keyless
-  read-only cache/mirror (e.g. MCIM) by pointing CURSEFORGE_API_BASE and
-  MODRINTH_API_BASE (or the "curseforge_api_base"/"modrinth_api_base" config
-  fields) at its endpoints, e.g. https://mod.mcimirror.top/curseforge/v1.
+  https://console.curseforge.com).
   The config file may also contain a "user_agent" field with your contact info.`,
 	Version: "0.1.0",
 }

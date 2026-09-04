@@ -23,10 +23,9 @@ type Config struct {
 // Modrinth requires a User-Agent on every request.
 const DefaultUserAgent = "cubehaul/0.1.0 (contact: set user_agent in ~/.cubehaul/config.json)"
 
-// Default API bases. Users can override these (see Load) to point at a
-// keyless read-only mirror/cache such as MCIM
-// (https://mod.mcimirror.top), which exposes the same CurseForge v1 and
-// Modrinth v2 JSON schemas without authentication.
+// Default API bases. Users can override these (see Load), e.g. to point at
+// a compatible read-only mirror/cache exposing the same CurseForge v1 and
+// Modrinth v2 JSON schemas.
 const (
 	DefaultCurseForgeBase = "https://api.curseforge.com/v1"
 	DefaultModrinthBase   = "https://api.modrinth.com/v2"

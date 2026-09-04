@@ -111,35 +111,18 @@ cubehaul modrinth search "" --facets-json '[["categories:forge"],["versions:1.17
 ```bash
 # 方式一：环境变量
 export CURSEFORGE_API_KEY=xxxxxxxx
-# 可选：把 API 指向只读缓存/镜像（免 key，见下）
-export CURSEFORGE_API_BASE=https://mod.mcimirror.top/curseforge/v1
-export MODRINTH_API_BASE=https://mod.mcimirror.top/modrinth/v2
 
 # 方式二：配置文件 ~/.cubehaul/config.json
 {
   "curseforge_api_key": "xxxxxxxx",
-  "curseforge_api_base": "https://mod.mcimirror.top/curseforge/v1",
-  "modrinth_api_base": "https://mod.mcimirror.top/modrinth/v2",
   "user_agent": "myname/1.0 (me@example.com)"
 }
 ```
 
-默认 base 为官方 `https://api.curseforge.com/v1` 与 `https://api.modrinth.com/v2`。
+默认 base 为官方 `https://api.curseforge.com/v1` 与 `https://api.modrinth.com/v2`，可用 `CURSEFORGE_API_BASE` / `MODRINTH_API_BASE`（或配置文件里的 `curseforge_api_base` / `modrinth_api_base` 字段）覆盖。
 
 - CurseForge 的官方接口搜索/详情/版本需要 API key（[申请地址](https://console.curseforge.com)）；`categories` 可匿名访问。没有 key 时工具会明确报错并给出解决方式。
 - Modrinth 无需认证，但强制携带 User-Agent（默认 `cubehaul/0.1.0`，可在配置里替换为你的联系方式）。
-
-### 用只读缓存免 key（MCIM）
-
-[MCIM](https://mod.mcimirror.top) 是 CurseForge + Modrinth 的只读缓存，暴露同构的 v1/v2 JSON 接口且**无需 API key**。把 base 指过去即可在没有 key 时搜索/查询/取版本：
-
-```bash
-cubehaul curseforge search "ae2 lightning" --loader neoforge --game-version 1.21.1 \
-  # 通过环境变量生效：CURSEFORGE_API_BASE=https://mod.mcimirror.top/curseforge/v1
-cubehaul curseforge versions 1527395 --loader neoforge --game-version 1.21.1
-```
-
-注意：MCIM 只缓存 API 数据，**不托管 mod 文件**——它返回的 `downloadUrl` 指向官方 CDN，`download` 仍从 `forgecdn`/`modrinth CDN` 下载。这是第三方社区镜像，仅供开发调试使用，数据可能有延迟。
 
 ## 实现要点
 
