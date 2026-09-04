@@ -94,7 +94,9 @@ the version with one of:
   --latest                         most recent version
   --loader / --game-version        first version matching the filters
 
-If several files exist for the version, the primary file is downloaded.`,
+If several files exist for the version, the primary file is downloaded.
+
+Files are saved into the system Downloads folder unless --output-dir is given.`,
 		Example: fmt.Sprintf("  cubehaul %s download sodium --latest\n  cubehaul %s download sodium --loader fabric --game-version 1.20.1", plat, plat),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -166,10 +168,18 @@ If several files exist for the version, the primary file is downloaded.`,
 				return fmt.Errorf("version %s has no downloadable file", target.ID)
 			}
 
+			dir := flags.outputDir
+			if dir == "" {
+				dir, err = download.DefaultDir()
+				if err != nil {
+					return fmt.Errorf("cannot locate the system Downloads folder, pass --output-dir: %w", err)
+				}
+			}
+
 			res, err := download.Run(cmd.Context(), download.Options{
 				URL:      file.URL,
 				Filename: file.Filename,
-				Dir:      flags.outputDir,
+				Dir:      dir,
 				Size:     file.Size,
 			})
 			if err != nil {
@@ -187,8 +197,19 @@ If several files exist for the version, the primary file is downloaded.`,
 	f.BoolVar(&flags.latest, "latest", false, "download the latest version")
 	f.StringSliceVar(&flags.loaders, "loader", nil, "require this mod loader (repeatable)")
 	f.StringSliceVar(&flags.gameVersions, "game-version", nil, "require this Minecraft version (repeatable)")
-	f.StringVar(&flags.outputDir, "output-dir", "./mods", "directory to save the file into")
+	f.StringVar(&flags.outputDir, "output-dir", "", outputDirUsage())
 	return cmd
+}
+
+// outputDirUsage builds the --output-dir help text, spelling out the resolved
+// system Downloads path so users see where files actually land. When it cannot
+// be determined the flag stays documented generically; the real error surfaces
+// at run time, not while building the command tree.
+func outputDirUsage() string {
+	if dir, err := download.DefaultDir(); err == nil {
+		return fmt.Sprintf("directory to save the file into (default: %s)", dir)
+	}
+	return "directory to save the file into (default: system Downloads folder)"
 }
 
 // newCategoriesCmd builds `categories` for the given platform. The class-id
