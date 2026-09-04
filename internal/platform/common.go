@@ -130,8 +130,9 @@ func sortVersionsByDate(vs []Version) {
 	})
 }
 
-// anyFold reports whether haystack contains needle, case-insensitively.
-func anyFold(haystack, needles []string) bool {
+// AnyFold reports whether haystack contains any needle, case-insensitively.
+// Exported because the cmd layer matches download filters the same way.
+func AnyFold(haystack, needles []string) bool {
 	for _, h := range haystack {
 		for _, n := range needles {
 			if strings.EqualFold(h, n) {

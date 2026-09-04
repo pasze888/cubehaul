@@ -506,7 +506,7 @@ func (c *CurseForgeClient) ListVersions(ctx context.Context, projectID string, l
 	if len(loaders) > 0 || len(gameVersions) > 0 {
 		filtered := versions[:0]
 		for _, v := range versions {
-			if len(loaders) > 0 && !anyFold(v.Loaders, loaders) {
+			if len(loaders) > 0 && !AnyFold(v.Loaders, loaders) {
 				continue
 			}
 			if len(gameVersions) > 0 && !anyExact(v.GameVersions, gameVersions) {

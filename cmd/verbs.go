@@ -143,10 +143,10 @@ Files are saved into the system Downloads folder unless --output-dir is given.`,
 				target = &versions[0]
 			default:
 				for i := range versions {
-					if len(flags.loaders) > 0 && !matchesAny(versions[i].Loaders, flags.loaders) {
+					if len(flags.loaders) > 0 && !platform.AnyFold(versions[i].Loaders, flags.loaders) {
 						continue
 					}
-					if len(flags.gameVersions) > 0 && !matchesAny(versions[i].GameVersions, flags.gameVersions) {
+					if len(flags.gameVersions) > 0 && !platform.AnyFold(versions[i].GameVersions, flags.gameVersions) {
 						continue
 					}
 					target = &versions[i]
@@ -250,16 +250,4 @@ func newPlatformClient(plat string) (platform.Platform, error) {
 		return nil, err
 	}
 	return platform.New(plat, cfg)
-}
-
-// matchesAny reports whether haystack contains any needle, case-insensitively.
-func matchesAny(haystack, needles []string) bool {
-	for _, h := range haystack {
-		for _, n := range needles {
-			if strings.EqualFold(h, n) {
-				return true
-			}
-		}
-	}
-	return false
 }
