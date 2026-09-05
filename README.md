@@ -63,6 +63,8 @@ cubehaul cf info 394468
 >
 > CF 的排序方向总会显式发出：`popularity`/`updated`/`downloads`/`relevancy` 走 `desc`，`name`/`author` 走 `asc`，`featured`/`category`/`game-version` 不指定（沿用服务端顺序）。`--sort-order` 可覆盖。
 
+> **CurseForge `versions` 的过滤下推**：`--loader`/`--game-version` 只给**一个**值（且 loader 名字能对应到平台枚举）时，该值作为服务端过滤条件下发；多值或无法对应的值回退为本地过滤——先按其余可下推的条件翻页取回文件列表，再在本地筛（下发过的条件也会本地复查），因此请求页数会更多。无论走哪条路径，单次最多取回 1000 个文件，命中上限会在 stderr 提示收窄过滤条件。
+
 ### Modrinth 专有（facet 精细控制）
 
 Modrinth 的 facet 语法：内层数组 OR、外层 AND，`:`/`=` 表示等于，`!=` `>=` `<=` `>` `<` 紧跟类型后做比较（注意比较操作符**不带冒号**）。
@@ -128,4 +130,4 @@ export CURSEFORGE_API_KEY=xxxxxxxx
 
 ## 限流与重试
 
-API 请求和文件下载对限流（429）、服务端临时错误（5xx）和网络抖动会自动重试（最多 4 次，尊重 `Retry-After`，过程提示到 stderr）。限流额度：Modrinth 300 req/min，CurseForge 50 req/10s。下载在传输中途断开不会续传，重跑命令即可。
+API 请求和文件下载对限流（429）、服务端临时错误（5xx）和网络抖动会自动重试（覆盖 API 请求与下载的**建连阶段**，最多 4 次尝试，尊重 `Retry-After`，过程提示到 stderr）。限流额度：Modrinth 300 req/min，CurseForge 50 req/10s。下载一旦开始传输，中途断开不会续传也不会重试，重跑命令即可（`.part` 会从头重写）。
