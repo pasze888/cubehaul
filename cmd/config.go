@@ -119,6 +119,9 @@ afterwards to see which source actually wins.`,
   cubehaul config set modrinth_api_base https://api.modrinth.com/v2`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := rejectOutputFlags(cmd); err != nil {
+				return err
+			}
 			key, err := lookupConfigKey(args[0])
 			if err != nil {
 				return err
@@ -144,6 +147,9 @@ rewrite the file.`,
 		Example: "  cubehaul config unset curseforge_api_base",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := rejectOutputFlags(cmd); err != nil {
+				return err
+			}
 			key, err := lookupConfigKey(args[0])
 			if err != nil {
 				return err
@@ -284,6 +290,20 @@ func writeConfigKey(name, value string) error {
 	}
 	values[name] = encoded
 	return config.SaveFile(path, values)
+}
+
+// rejectOutputFlags refuses the shared --json/--jq flags on a command that
+// writes nothing. The flags live on the root command, so pflag accepts them
+// everywhere, and silently ignoring them is the worst outcome: a
+// "config set k v --json | jq .value" pipeline would read an empty string and
+// exit 0, which looks like success.
+func rejectOutputFlags(cmd *cobra.Command) error {
+	for _, name := range []string{"json", "jq"} {
+		if flag := cmd.Flags().Lookup(name); flag != nil && flag.Changed {
+			return fmt.Errorf("%s writes no output: --%s does not apply", cmd.CommandPath(), name)
+		}
+	}
+	return nil
 }
 
 // toConfigRow projects a resolved value onto the renderer's row type.
