@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.1 — 2026-09-26
+
+### 修正
+
+- 帮助文案不再串台：`--project-type` / `--game-version` / `--limit` / `--offset` 的说明按平台生成，`cubehaul modrinth search --help` 里不会再冒出 CurseForge 的限定词（"curseforge uses only the first" 云云）
+- 根帮助去掉失效指引：不再指向安装包中不存在的 `docs/json-fields.md`，改为说明字段名写错会列出合法字段；同时补上此前只在命令列表里出现的 `target` 与 `--gradle`
+- `config set` / `config unset` 现在拒绝 `--json` / `--jq`：此前它们被静默忽略（exit 0、stdout 为空，连 `--json=不存在的字段` 也不报错），`config set k v --json | jq .value` 这样的管道会拿到空串却当成成功
+- README 里残留的四处 `search ""` 写法去掉（查询词本来就是可选的）
+
+### 变更
+
+- `--json` 的帮助直说"裸 `--json` 输出全字段"（pflag 把可选值渲染成 `string[="all"]`，不点明容易被读成必须传 `all`）
+- `config list` / `config path` 补上缺失的示例；`categories` 的示例按平台给出真正可变的东西——CurseForge 用 `--class-id 6`，Modrinth 没有这个 flag，改用 `--json` 字段裁剪
+- `curseforge search` 的帮助删掉 `sortOrder`/`sortField` 的 API 行为考据，只留用户可见的结论（细节仍在 README 的「缺省排序」）
+- CurseForge 专属 flag 的说明去掉冗余的 `curseforge `前缀，上下文已经表明了平台
+
 ## v0.3.0 — 2026-09-26
 
 ### 新增
