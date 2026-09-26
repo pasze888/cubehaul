@@ -119,7 +119,7 @@ differently from the API.`,
 	}
 
 	f := cmd.Flags()
-	addSearchCommonFlags(f, &s.common)
+	addSearchCommonFlags(f, &s.common, platform.PlatformModrinth)
 	f.BoolVar(&s.openSource, "open-source", false, "only open-source projects")
 	f.BoolVar(&s.noOpen, "no-open-source", false, "only closed-source projects")
 	f.StringVar(&s.environment, "environment", "", "supported environment: client, server, client_and_server")

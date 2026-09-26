@@ -27,8 +27,8 @@ var rootCmd = &cobra.Command{
 	Short: "Search, inspect and download Minecraft mods from Modrinth and CurseForge",
 	Long: `cubehaul searches and downloads Minecraft projects from Modrinth and CurseForge.
 
-All verbs live under a per-platform sub-command, each exposing only the flags
-its platform supports:
+Platform commands live under a per-platform sub-command, each exposing only the
+flags its platform supports; "config" and "target" are not platform-specific:
 
   cubehaul modrinth search sodium --loader fabric --limit 5
   cubehaul modrinth view sodium
@@ -47,11 +47,20 @@ Shorthands (identical to the long names):
   cubehaul mr ...  ==  cubehaul modrinth ...
   cubehaul cf ...  ==  cubehaul curseforge ...
 
+Mod projects:
+  Inside a mod project, --gradle reads gradle.properties and fills
+  --game-version and --loader from it. "cubehaul target" reports what that
+  detection finds without making a request:
+
+    cubehaul target
+    cubehaul modrinth download sodium --latest --gradle
+
 Output:
-  Listing commands print a table; --json prints JSON instead and
-  --json=field,field keeps only the named fields (docs/json-fields.md lists
-  them). --jq <expr> filters that JSON with jq syntax, evaluated in-process.
-  --debug prints request, retry and proxy diagnostics to stderr.
+  Results print as tables or plain lines for humans; --json prints JSON instead
+  and --json=field,field keeps only the named fields (an unknown field name
+  lists the ones that exist). --jq <expr> filters that JSON with jq syntax,
+  evaluated in-process. --debug prints request, retry and proxy diagnostics to
+  stderr.
 
 Configuration:
   Modrinth needs no key but requires a User-Agent, which is set automatically.

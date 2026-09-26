@@ -23,14 +23,29 @@ type searchCommonFlags struct {
 }
 
 // addSearchCommonFlags registers the platform-agnostic search flags on f.
-func addSearchCommonFlags(f *pflag.FlagSet, s *searchCommonFlags) {
-	f.StringVar(&s.projectType, "project-type", "", "project type: mod, modpack, resourcepack, shader, plugin, datapack, ... (curseforge maps this to a class id)")
+//
+// Four of them behave differently on the two platforms, so their help text is
+// built per platform: a CurseForge caveat shown on the Modrinth sub-command is
+// noise, and the same caveat under CurseForge only restates the obvious.
+func addSearchCommonFlags(f *pflag.FlagSet, s *searchCommonFlags, plat string) {
+	projectType := "project type: mod, modpack, resourcepack, shader, plugin, datapack, ..."
+	gameVersion := "Minecraft version, e.g. 1.20.1 (repeatable)"
+	limit := "max results"
+	offset := "results to skip"
+	if plat == platform.PlatformCurseForge {
+		projectType += " (mapped to a class id)"
+		gameVersion += " (only the first is sent to the API)"
+		limit += " (the API caps a page at 50)"
+		offset += " (the API parameter is index)"
+	}
+
+	f.StringVar(&s.projectType, "project-type", "", projectType)
 	f.StringSliceVar(&s.categories, "category", nil, "category name/slug, repeatable, ORed together")
 	f.StringSliceVar(&s.loaders, "loader", nil, "mod loader, repeatable (fabric/forge/neoforge/quilt/...)")
-	f.StringSliceVar(&s.gameVersions, "game-version", nil, "Minecraft version, e.g. 1.20.1 (repeatable; curseforge uses only the first)")
+	f.StringSliceVar(&s.gameVersions, "game-version", nil, gameVersion)
 	f.StringVar(&s.sort, "sort", "", "sort order (see each platform sub-command for supported values)")
-	f.IntVar(&s.limit, "limit", 10, "max results (curseforge caps at 50)")
-	f.IntVar(&s.offset, "offset", 0, "results to skip (curseforge: index)")
+	f.IntVar(&s.limit, "limit", 10, limit)
+	f.IntVar(&s.offset, "offset", 0, offset)
 }
 
 // toSearchOptions converts the shared flags into the common portion of a

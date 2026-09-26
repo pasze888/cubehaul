@@ -113,14 +113,14 @@ query only, since the site encodes its other filters differently from the API.`,
 	}
 
 	f := cmd.Flags()
-	addSearchCommonFlags(f, &s.common)
+	addSearchCommonFlags(f, &s.common, platform.PlatformCurseForge)
 	f.StringVar(&s.sortOrder, "sort-order", "", "sort direction: asc or desc")
-	f.IntVar(&s.classID, "class-id", 0, "curseforge class id (default: 6, mods)")
-	f.IntVar(&s.categoryID, "category-id", 0, "curseforge category id, overrides --category")
-	f.IntVar(&s.modID, "mod-id", 0, "curseforge mod id: fetch that mod directly instead of searching")
-	f.StringVar(&s.slug, "slug", "", "curseforge slug")
-	f.IntVar(&s.gameVersionTypeID, "game-version-type-id", 0, "curseforge game version type: 1=release, 2=beta, 3=alpha")
-	f.StringSliceVar(&s.rawParams, "raw-param", nil, "raw curseforge query parameter key=value, passed through verbatim (repeatable)")
+	f.IntVar(&s.classID, "class-id", 0, "class id (default: 6, mods)")
+	f.IntVar(&s.categoryID, "category-id", 0, "category id, overrides --category")
+	f.IntVar(&s.modID, "mod-id", 0, "mod id: fetch that mod directly instead of searching")
+	f.StringVar(&s.slug, "slug", "", "slug")
+	f.IntVar(&s.gameVersionTypeID, "game-version-type-id", 0, "game version type: 1=release, 2=beta, 3=alpha")
+	f.StringSliceVar(&s.rawParams, "raw-param", nil, "query parameter key=value, passed through verbatim (repeatable)")
 	f.BoolVarP(&s.web, "web", "w", false, "open the search page in a browser instead of calling the API")
 	addGradleFlag(f, &s.gradle)
 

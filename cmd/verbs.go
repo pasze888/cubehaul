@@ -290,7 +290,7 @@ func newCategoriesCmd(plat string, exposeClassID bool) *cobra.Command {
 		},
 	}
 	if exposeClassID {
-		cmd.Flags().IntVar(&flags.classID, "class-id", 0, "only show categories of this class (curseforge; default: all)")
+		cmd.Flags().IntVar(&flags.classID, "class-id", 0, "only show categories of this class (default: all)")
 	}
 	return cmd
 }
