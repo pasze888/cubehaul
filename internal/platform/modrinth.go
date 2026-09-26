@@ -83,6 +83,15 @@ func NewModrinthClient(cfg *config.Config) *ModrinthClient {
 
 func (c *ModrinthClient) Name() string { return PlatformModrinth }
 
+// DoRaw GETs path and hands back the untouched JSON body.
+func (c *ModrinthClient) DoRaw(ctx context.Context, path string, q url.Values) (json.RawMessage, error) {
+	var raw json.RawMessage
+	if err := c.do(ctx, path, q, &raw); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
 // do performs a GET request and decodes JSON into out.
 func (c *ModrinthClient) do(ctx context.Context, path string, q url.Values, out any) error {
 	u := c.base + path

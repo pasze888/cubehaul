@@ -12,17 +12,18 @@ go build -o cubehaul .
 
 ## 命令
 
-所有命令都挂在平台子命令下（`cubehaul modrinth ...` / `cubehaul curseforge ...`，各自只暴露本平台支持的 flag）。两个平台子命令都有缩写：`modrinth` → `mr`、`curseforge` → `cf`：
+平台相关的命令都挂在平台子命令下（`cubehaul modrinth ...` / `cubehaul curseforge ...`，各自只暴露本平台支持的 flag）；另有与平台无关的 `cubehaul config`。两个平台子命令都有缩写：`modrinth` → `mr`、`curseforge` → `cf`：
 
 ```bash
 # 搜索（query 可选，省略则按过滤条件列出）
 cubehaul modrinth search sodium --loader fabric --game-version 1.20.1 --limit 10
-cubehaul modrinth search "" --category adventure --sort downloads
+cubehaul modrinth search --category adventure --sort downloads
 cubehaul curseforge search sodium --loader forge --game-version 1.20.1 --category technology
 
-# 项目详情
-cubehaul modrinth info sodium
-cubehaul curseforge info 394468
+# 项目详情（view；info 是它的别名）
+cubehaul modrinth view sodium
+cubehaul curseforge view 394468
+cubehaul modrinth view sodium --web        # 改用浏览器打开项目页
 
 # 版本列表（ID 列可直接用于 download --version-id）
 cubehaul modrinth versions sodium --loader fabric --game-version 1.20.1
@@ -37,14 +38,67 @@ cubehaul curseforge download 394468 --version-id 5730579 --output-dir ./mods
 cubehaul curseforge categories --class-id 6
 cubehaul modrinth categories
 
+# 平台 API 兜底：任意只读端点，-f 传查询参数
+cubehaul modrinth api /project/sodium --jq .downloads
+cubehaul curseforge api /mods/394468 --jq .data.downloadCount
+
 # 用缩写（与上面完全等价）
 cubehaul mr search sodium --loader fabric
-cubehaul cf info 394468
+cubehaul cf view 394468
 ```
 
-所有输出命令均支持 `--json`。
+### 输出
+
+默认打印表格；`--json` 打印 JSON，`--json=field,field` 只保留指定字段，`--jq '<表达式>'` 用 jq 语法过滤（内置 gojq，**不需要装 `jq`**；`--jq` 隐含 `--json`）：
+
+```bash
+cubehaul mr search sodium --json
+cubehaul mr search sodium --json=id,title,downloads
+cubehaul mr search sodium --jq 'sort_by(.downloads) | reverse | .[0:5] | .[].title'
+cubehaul mr versions sodium --json=id,version_number,loaders
+```
+
+> `--json` 的取值必须用 `=`：裸 `--json` 就是“全部字段”，写成 `--json id,title` 时
+> `id,title` 会被当成位置参数。字段名与输出顺序见 [docs/json-fields.md](docs/json-fields.md)。
+
+`--debug` 把请求、重试与代理诊断打到 stderr（等价于 `CUBEHAUL_DEBUG=1`）；结果输出始终只走 stdout，进度条也固定在 stderr。
 
 > `download` 默认保存到**系统下载文件夹**（Windows 取 `FOLDERID_Downloads`，兼容 OneDrive 重定向；Linux 读 `XDG_DOWNLOAD_DIR`，回退 `~/Downloads`），目录不存在会自动创建。解析不到时直接报错，需显式传 `--output-dir`。它**不会**自动寻找某个 Minecraft 实例的 mods 目录，要直接落到实例里请显式指定 `--output-dir`。
+
+### mod 工程目标（gradle.properties）
+
+在 mod 工程目录里加 `--gradle`，就会从 `gradle.properties` 读出工程目标的 **Minecraft 版本**与**加载器**，补进 `--game-version` / `--loader`：
+
+```bash
+cd MyMod
+cubehaul target                            # 先看识别到什么（只读，不发请求）
+cubehaul mr download sodium --latest --gradle
+cubehaul mr search jei --gradle            # 只找你这个目标下的版本
+cubehaul mr versions sodium --gradle
+```
+
+- 裸 `--gradle` 从当前目录**向上**找 `gradle.properties`；最近这份没写版本/加载器时会继续往上（多模块工程常把目标写在根文件里），真正给出答案的文件会打在 stderr，也可以用 `target` 的 `FILE` 看。`--gradle=<文件|目录>` 从指定位置开始（直接给文件就只用该文件）。
+- 显式写了 `--game-version` / `--loader` 时以你写的为准，被忽略的值会在 stderr 说明。
+- 识别到多个加载器（Architectury 这类多加载器工程）时**不猜**，提示你显式传 `--loader`。
+- 属性名不是固定列表：`minecraft_version`、`mcVersion`、`minecraftVersion`、`neoforge_121_minecraft_version` 这类 target 前缀键都能认；工程只写了 `minecraft_version_range` 时取区间下界，并用 `VERSION SOURCE` 标出它的来源，方便复核。
+- `mod_loader` / `modLoaders` 这类**显式声明优先**于键名推断（有些工程把 NeoForge 的版本写成 `forgeVersion`）；依赖项的版本键（如 `emiMinecraftVersion`）不会被当成工程目标。
+- `--version-id` 已经点明确切版本，此时 `--gradle` 不参与。
+
+### 配置命令
+
+`cubehaul config` 直接读写 `~/.cubehaul/config.json`，不必手改 JSON：
+
+```bash
+cubehaul config list                       # 每个键的有效值 + 来源；密钥默认掩码
+cubehaul config list --show-secrets        # 显示密钥原文
+cubehaul config get curseforge_api_key     # 只打印有效值，供脚本取用
+cubehaul config set curseforge_api_key "$CF_API_KEY"
+cubehaul config set user_agent "myname/1.0 (me@example.com)"
+cubehaul config unset curseforge_api_base  # 删掉该键，回退内置默认
+cubehaul config path                       # 配置文件位置
+```
+
+有效值优先级是 **环境变量 > 配置文件 > 内置默认**，`config list` 的 `SOURCE` 列显示实际生效的来源（`env` / `file` / `default` / `unset`）。`set` 会先校验（URL 形态、非空、无控制字符）再**原子替换**文件，手写在同一文件里的其它键不会丢；POSIX 下文件权限 0600（Windows 忽略该位）。`get` 面向脚本逐字输出，因此不掩码；只有 `list` 掩码。
 
 ## 搜索过滤
 
@@ -122,6 +176,8 @@ export CURSEFORGE_API_KEY=xxxxxxxx
   "user_agent": "myname/1.0 (me@example.com)"
 }
 ```
+
+方式三：用 `cubehaul config set <key> <value>` 写入，先校验再原子替换文件（见上文「配置命令」）。
 
 默认 base 为官方 `https://api.curseforge.com/v1` 与 `https://api.modrinth.com/v2`，可用 `CURSEFORGE_API_BASE` / `MODRINTH_API_BASE`（或配置文件里的 `curseforge_api_base` / `modrinth_api_base` 字段）覆盖。
 

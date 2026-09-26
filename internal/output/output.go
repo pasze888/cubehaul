@@ -1,8 +1,7 @@
-// Package output renders results as aligned tables or JSON.
+// Package output renders results as aligned tables or as JSON.
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -13,23 +12,14 @@ import (
 	"cubehaul/internal/platform"
 )
 
-func printJSON(v any) {
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(v); err != nil {
-		fmt.Fprintln(os.Stderr, "json encode:", err)
-	}
-}
-
-// Projects prints search results as a table or JSON.
-func Projects(projects []platform.Project, asJSON bool) {
-	if asJSON {
-		printJSON(projects)
-		return
+// Projects prints search results as a table or as JSON.
+func Projects(projects []platform.Project, f Format) error {
+	if f.JSON.On {
+		return emitList(f, projects, projectFields)
 	}
 	if len(projects) == 0 {
 		fmt.Println("no results")
-		return
+		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	fmt.Fprintln(w, "PLATFORM\tID\tSLUG\tTITLE\tAUTHOR\tDOWNLOADS\tFOLLOWS\tUPDATED")
@@ -40,13 +30,13 @@ func Projects(projects []platform.Project, asJSON bool) {
 			HumanCount(p.Downloads), HumanCount(p.Follows), shortDate(p.UpdatedAt))
 	}
 	w.Flush()
+	return nil
 }
 
-// Project prints a single project as a detail table or JSON.
-func Project(p *platform.Project, asJSON bool) {
-	if asJSON {
-		printJSON(p)
-		return
+// Project prints a single project as a detail table or as JSON.
+func Project(p *platform.Project, f Format) error {
+	if f.JSON.On {
+		return emitOne(f, p, projectFields)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	fmt.Fprintf(w, "Title:\t%s\n", p.Title)
@@ -62,17 +52,17 @@ func Project(p *platform.Project, asJSON bool) {
 	fmt.Fprintf(w, "URL:\t%s\n", p.URL)
 	fmt.Fprintf(w, "Description:\t%s\n", wrap(p.Description, 100))
 	w.Flush()
+	return nil
 }
 
-// Versions prints a version list as a table or JSON.
-func Versions(versions []platform.Version, asJSON bool) {
-	if asJSON {
-		printJSON(versions)
-		return
+// Versions prints a version list as a table or as JSON.
+func Versions(versions []platform.Version, f Format) error {
+	if f.JSON.On {
+		return emitList(f, versions, versionFields)
 	}
 	if len(versions) == 0 {
 		fmt.Println("no versions")
-		return
+		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	fmt.Fprintln(w, "ID\tNAME\tGAME VERSIONS\tLOADERS\tDATE")
@@ -84,17 +74,17 @@ func Versions(versions []platform.Version, asJSON bool) {
 			shortDate(v.DatePublished))
 	}
 	w.Flush()
+	return nil
 }
 
-// Categories prints a category tree as a table or JSON.
-func Categories(cats []platform.Category, asJSON bool) {
-	if asJSON {
-		printJSON(cats)
-		return
+// Categories prints a category tree as a table or as JSON.
+func Categories(cats []platform.Category, f Format) error {
+	if f.JSON.On {
+		return emitList(f, cats, categoryFields)
 	}
 	if len(cats) == 0 {
 		fmt.Println("no categories")
-		return
+		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	fmt.Fprintln(w, "ID\tNAME\tSLUG")
@@ -127,6 +117,65 @@ func Categories(cats []platform.Category, asJSON bool) {
 		walk(r, 0)
 	}
 	w.Flush()
+	return nil
+}
+
+// ConfigRow is one configuration key together with the value in effect for it
+// (see the "config" command).
+type ConfigRow struct {
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+	Source string `json:"source"`
+	Secret bool   `json:"secret,omitempty"`
+}
+
+// Config prints configuration rows as a table or as JSON. Secret values are
+// masked unless showSecrets is set.
+func Config(rows []ConfigRow, f Format, showSecrets bool) error {
+	if f.JSON.On {
+		out := make([]ConfigRow, len(rows))
+		for i, r := range rows {
+			if r.Secret && !showSecrets {
+				r.Value = mask(r.Value)
+			}
+			out[i] = r
+		}
+		return emitList(f, out, configFields)
+	}
+	if len(rows) == 0 {
+		fmt.Println("no configuration keys")
+		return nil
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(w, "KEY\tVALUE\tSOURCE")
+	for _, r := range rows {
+		fmt.Fprintf(w, "%s\t%s\t%s\n", r.Key, visibleValue(r, showSecrets), r.Source)
+	}
+	w.Flush()
+	return nil
+}
+
+// ConfigOne prints a single configuration row as JSON. It is used by
+// "config get --json": asking for one key is an explicit request, so the value
+// is not masked.
+func ConfigOne(row ConfigRow, f Format) error {
+	return emitOne(f, row, configFields)
+}
+
+// TargetResult prints a detected mod development target as a table or as JSON.
+func TargetResult(t Target, f Format) error {
+	if f.JSON.On {
+		return emitOne(f, t, targetFields)
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	fmt.Fprintf(w, "FILE:\t%s\n", t.File)
+	fmt.Fprintf(w, "MINECRAFT VERSION:\t%s\n", orDash(t.MinecraftVersion))
+	if t.MinecraftVersionSource != "" {
+		fmt.Fprintf(w, "VERSION SOURCE:\t%s\n", t.MinecraftVersionSource)
+	}
+	fmt.Fprintf(w, "LOADERS:\t%s\n", orDash(strings.Join(t.Loaders, ", ")))
+	w.Flush()
+	return nil
 }
 
 // HumanCount formats counts compactly, e.g. 1234567 -> "1.2M".
@@ -205,4 +254,29 @@ func wrap(s string, width int) string {
 		line += len(word)
 	}
 	return b.String()
+}
+
+// visibleValue renders a row for the table: an unset key reads as "(unset)"
+// rather than as a blank cell.
+func visibleValue(r ConfigRow, showSecrets bool) string {
+	if r.Value == "" {
+		return "(unset)"
+	}
+	if r.Secret && !showSecrets {
+		return mask(r.Value)
+	}
+	return r.Value
+}
+
+// mask keeps only the last four characters of a secret, enough to tell which
+// value is in use without printing it.
+func mask(s string) string {
+	if s == "" {
+		return ""
+	}
+	r := []rune(s)
+	if len(r) <= 4 {
+		return strings.Repeat("*", len(r))
+	}
+	return "****" + string(r[len(r)-4:])
 }

@@ -167,6 +167,15 @@ func NewCurseForgeClient(cfg *config.Config) *CurseForgeClient {
 
 func (c *CurseForgeClient) Name() string { return PlatformCurseForge }
 
+// DoRaw GETs path and hands back the untouched JSON body.
+func (c *CurseForgeClient) DoRaw(ctx context.Context, path string, q url.Values) (json.RawMessage, error) {
+	var raw json.RawMessage
+	if err := c.do(ctx, path, q, &raw); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
 // do performs a GET request and decodes JSON into out.
 func (c *CurseForgeClient) do(ctx context.Context, path string, q url.Values, out any) error {
 	u := c.base + path

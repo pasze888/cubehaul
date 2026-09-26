@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"cubehaul/internal/debug"
 )
 
 // NewClient returns an HTTP client whose transport routes requests through
@@ -44,15 +46,17 @@ func ProxyFunc() func(*http.Request) (*url.URL, error) {
 			fmt.Fprintf(os.Stderr, "cubehaul: invalid CUBEHAUL_PROXY %q: %v (ignored)\n", v, err)
 			return http.ProxyFromEnvironment
 		}
-		debugf("using proxy %s (CUBEHAUL_PROXY)", u)
+		debug.Printf("using proxy %s (CUBEHAUL_PROXY)", u)
 		return func(*http.Request) (*url.URL, error) { return u, nil }
 	}
 	if hasEnvProxy() {
+		debug.Printf("using the proxy from HTTP_PROXY/HTTPS_PROXY")
 		return http.ProxyFromEnvironment
 	}
 	if f := systemProxyFunc(); f != nil {
 		return f
 	}
+	debug.Printf("no proxy configured, connecting directly")
 	return func(*http.Request) (*url.URL, error) { return nil, nil }
 }
 
@@ -77,12 +81,6 @@ func parseProxyURL(v string) (*url.URL, error) {
 		return nil, fmt.Errorf("missing host")
 	}
 	return u, nil
-}
-
-func debugf(format string, args ...any) {
-	if os.Getenv("CUBEHAUL_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "cubehaul: "+format+"\n", args...)
-	}
 }
 
 // parseProxyServer parses a Windows ProxyServer registry value:

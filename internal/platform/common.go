@@ -3,7 +3,9 @@ package platform
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 
@@ -109,6 +111,9 @@ type Platform interface {
 	GetProject(ctx context.Context, id string) (*Project, error)
 	ListVersions(ctx context.Context, projectID string, loaders, gameVersions []string) ([]Version, error)
 	Categories(ctx context.Context, classID int) ([]Category, error)
+	// DoRaw performs an arbitrary GET against the platform API and returns the
+	// undecoded JSON body. It backs the "api" escape-hatch command.
+	DoRaw(ctx context.Context, path string, q url.Values) (json.RawMessage, error)
 }
 
 // New creates a client for the named platform.

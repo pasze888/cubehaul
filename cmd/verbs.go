@@ -12,16 +12,19 @@ import (
 	"cubehaul/internal/platform"
 )
 
-// newInfoCmd builds `info <id|slug>` for the given platform. The platform is
-// fixed by the enclosing platform sub-command, so only the project id/slug is
-// positional.
+// newInfoCmd builds "view <id|slug>" (alias "info") for the given platform. The
+// platform is fixed by the enclosing platform sub-command, so only the project
+// id/slug is positional.
 func newInfoCmd(plat string) *cobra.Command {
+	var web bool
 	cmd := &cobra.Command{
-		Use:   "info <id|slug>",
-		Short: "Show details of a single project",
+		Use:     "view <id|slug>",
+		Aliases: []string{"info"},
+		Short:   "Show details of a single project",
 		Long: `Show details of a single project. <id> is a slug or numeric ID on Modrinth,
-a numeric mod ID on CurseForge (comes from the search results).`,
-		Example: fmt.Sprintf("  cubehaul %s info sodium", plat),
+a numeric mod ID on CurseForge (comes from the search results). "info" still
+works as an alias of "view".`,
+		Example: fmt.Sprintf("  cubehaul %s view sodium", plat),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newPlatformClient(plat)
@@ -32,30 +35,45 @@ a numeric mod ID on CurseForge (comes from the search results).`,
 			if err != nil {
 				return err
 			}
-			output.Project(p, jsonOutput)
-			return nil
+			if web {
+				return openProjectInBrowser(p.URL, args[0])
+			}
+			return output.Project(p, outFormat())
 		},
 	}
+	cmd.Flags().BoolVarP(&web, "web", "w", false, "open the project page in a browser instead of printing it")
 	return cmd
 }
 
-// newVersionsCmd builds `versions <id>` for the given platform.
+// newVersionsCmd builds "versions <id>" for the given platform.
 func newVersionsCmd(plat string) *cobra.Command {
 	var flags struct {
 		loaders      []string
 		gameVersions []string
 		limit        int
+		web          bool
+		gradle       string
 	}
 	cmd := &cobra.Command{
 		Use:   "versions <id>",
 		Short: "List versions of a project",
 		Long: `List versions (releases/files) of a project. The ID column feeds directly
-into "download --version-id".`,
+into "download --version-id". With --web the project page is opened instead.`,
 		Example: fmt.Sprintf("  cubehaul %s versions sodium --loader fabric", plat),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newPlatformClient(plat)
 			if err != nil {
+				return err
+			}
+			if flags.web {
+				p, err := client.GetProject(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				return openProjectInBrowser(p.URL, args[0])
+			}
+			if err := applyGradleTarget(flags.gradle, &flags.loaders, &flags.gameVersions); err != nil {
 				return err
 			}
 			versions, err := client.ListVersions(cmd.Context(), args[0], flags.loaders, flags.gameVersions)
@@ -65,18 +83,19 @@ into "download --version-id".`,
 			if len(versions) > flags.limit {
 				versions = versions[:flags.limit]
 			}
-			output.Versions(versions, jsonOutput)
-			return nil
+			return output.Versions(versions, outFormat())
 		},
 	}
 	f := cmd.Flags()
 	f.StringSliceVar(&flags.loaders, "loader", nil, "only versions for this loader (repeatable)")
 	f.StringSliceVar(&flags.gameVersions, "game-version", nil, "only versions for this game version (repeatable)")
 	f.IntVar(&flags.limit, "limit", 50, "max versions to show")
+	f.BoolVarP(&flags.web, "web", "w", false, "open the project page in a browser instead of listing versions")
+	addGradleFlag(f, &flags.gradle)
 	return cmd
 }
 
-// newDownloadCmd builds `download <id>` for the given platform.
+// newDownloadCmd builds "download <id>" for the given platform.
 func newDownloadCmd(plat string) *cobra.Command {
 	var flags struct {
 		versionID    string
@@ -84,6 +103,7 @@ func newDownloadCmd(plat string) *cobra.Command {
 		loaders      []string
 		gameVersions []string
 		outputDir    string
+		gradle       string
 	}
 	cmd := &cobra.Command{
 		Use:   "download <id>",
@@ -96,7 +116,9 @@ the version with one of:
 
 If several files exist for the version, the primary file is downloaded.
 
-Files are saved into the system Downloads folder unless --output-dir is given.`,
+Files are saved into the system Downloads folder unless --output-dir is given.
+Progress goes to stderr; with --json the result is printed as a JSON object
+(platform, project, version, version_id, file, url, path, size).`,
 		Example: fmt.Sprintf("  cubehaul %s download sodium --latest\n  cubehaul %s download sodium --loader fabric --game-version 1.20.1", plat, plat),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -106,6 +128,16 @@ Files are saved into the system Downloads folder unless --output-dir is given.`,
 			if flags.versionID == "" && !flags.latest &&
 				len(flags.loaders) == 0 && len(flags.gameVersions) == 0 {
 				return fmt.Errorf("choose a version: --version-id <id>, --latest, or --loader/--game-version")
+			}
+
+			// An exact version id already names the release, so the project's
+			// target would only risk filtering it away.
+			if flags.versionID != "" {
+				if flags.gradle != "" {
+					notice("--version-id given, ignoring --gradle")
+				}
+			} else if err := applyGradleTarget(flags.gradle, &flags.loaders, &flags.gameVersions); err != nil {
+				return err
 			}
 
 			// Load config once: the client and the download's User-Agent
@@ -192,6 +224,19 @@ Files are saved into the system Downloads folder unless --output-dir is given.`,
 			if err != nil {
 				return err
 			}
+
+			if f := outFormat(); f.JSON.On {
+				return output.DownloadResult(output.Download{
+					Platform:  plat,
+					Project:   args[0],
+					Version:   target.VersionNumber,
+					VersionID: target.ID,
+					File:      file.Filename,
+					URL:       file.URL,
+					Path:      res.Path,
+					Size:      res.Size,
+				}, f)
+			}
 			fmt.Printf("Downloaded %s (%s)\n", res.Path, output.HumanSize(res.Size))
 			fmt.Printf("  project %s | version %s | loaders %s | game versions %s\n",
 				args[0], target.VersionNumber,
@@ -205,6 +250,7 @@ Files are saved into the system Downloads folder unless --output-dir is given.`,
 	f.StringSliceVar(&flags.loaders, "loader", nil, "require this mod loader (repeatable)")
 	f.StringSliceVar(&flags.gameVersions, "game-version", nil, "require this Minecraft version (repeatable)")
 	f.StringVar(&flags.outputDir, "output-dir", "", outputDirUsage())
+	addGradleFlag(f, &flags.gradle)
 	return cmd
 }
 
@@ -219,7 +265,7 @@ func outputDirUsage() string {
 	return "directory to save the file into (default: system Downloads folder)"
 }
 
-// newCategoriesCmd builds `categories` for the given platform. The class-id
+// newCategoriesCmd builds "categories" for the given platform. The class-id
 // flag is only meaningful for CurseForge, so it is exposed only there.
 func newCategoriesCmd(plat string, exposeClassID bool) *cobra.Command {
 	var flags struct {
@@ -240,8 +286,7 @@ func newCategoriesCmd(plat string, exposeClassID bool) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			output.Categories(cats, jsonOutput)
-			return nil
+			return output.Categories(cats, outFormat())
 		},
 	}
 	if exposeClassID {

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
+
+	"cubehaul/internal/debug"
 )
 
 const internetSettingsKey = `Software\Microsoft\Windows\CurrentVersion\Internet Settings`
@@ -37,7 +39,7 @@ func systemProxyFunc() func(*http.Request) (*url.URL, error) {
 		return nil
 	}
 	noProxy := parseOverride(override)
-	debugf("using system proxy %s", server)
+	debug.Printf("using the Windows system proxy %s", server)
 	return func(req *http.Request) (*url.URL, error) {
 		if bypass(req.URL.Hostname(), noProxy) {
 			return nil, nil

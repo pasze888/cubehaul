@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"cubehaul/internal/config"
@@ -8,8 +10,8 @@ import (
 	"cubehaul/internal/platform"
 )
 
-// newCurseforgeCmd builds the `cubehaul curseforge` platform command, hosting
-// the full verb set (search/info/versions/download/categories) scoped to
+// newCurseforgeCmd builds the "cubehaul curseforge" platform command, hosting
+// the full verb set (search/view/versions/download/categories/api) scoped to
 // CurseForge.
 func newCurseforgeCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -26,6 +28,7 @@ CURSEFORGE_API_KEY or add "curseforge_api_key" to ~/.cubehaul/config.json
 		newVersionsCmd(platform.PlatformCurseForge),
 		newDownloadCmd(platform.PlatformCurseForge),
 		newCategoriesCmd(platform.PlatformCurseForge, true),
+		newAPICmd(platform.PlatformCurseForge),
 	)
 	return cmd
 }
@@ -40,6 +43,8 @@ type curseforgeSearchFlags struct {
 	slug              string
 	gameVersionTypeID int
 	rawParams         []string
+	web               bool
+	gradle            string
 }
 
 func newCurseforgeSearchCmd() *cobra.Command {
@@ -59,22 +64,33 @@ The sort direction is always sent explicitly when a field has a meaningful one
 -- desc for popularity/updated/downloads/relevancy, asc for name/author --
 because the API leaves sortOrder undocumented and empirically treats an omitted
 one as ascending. --sort-order overrides it. Relevance is undefined for a
-term-less filtered search, so those keep the API's own default order.`,
+term-less filtered search, so those keep the API's own default order.
+
+With --web no request is made: the CurseForge search page is opened with the
+query only, since the site encodes its other filters differently from the API.`,
 		Example: `  cubehaul curseforge search sodium --loader forge
-  cubehaul curseforge search "" --category technology --sort downloads
+  cubehaul curseforge search --category technology --sort downloads
   cubehaul curseforge search --mod-id 394468`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			query := ""
+			if len(args) == 1 {
+				query = args[0]
+			}
+			if s.web {
+				u := searchWebURL(platform.PlatformCurseForge, query, s.common.projectType)
+				if u == "" {
+					return fmt.Errorf("cannot build a CurseForge search URL")
+				}
+				return openInBrowser(u)
+			}
+
 			cfg, err := config.Load()
 			if err != nil {
 				return err
 			}
 			client := platform.NewCurseForgeClient(cfg)
 
-			query := ""
-			if len(args) == 1 {
-				query = args[0]
-			}
 			opts := s.common.toSearchOptions(platform.PlatformCurseForge, query)
 			opts.SortOrder = s.sortOrder
 			opts.ClassID = s.classID
@@ -84,12 +100,15 @@ term-less filtered search, so those keep the API's own default order.`,
 			opts.GameVersionTypeID = s.gameVersionTypeID
 			opts.RawParams = s.rawParams
 
+			if err := applyGradleTarget(s.gradle, &opts.Loaders, &opts.GameVersions); err != nil {
+				return err
+			}
+
 			projects, err := client.Search(cmd.Context(), opts)
 			if err != nil {
 				return err
 			}
-			output.Projects(projects, jsonOutput)
-			return nil
+			return output.Projects(projects, outFormat())
 		},
 	}
 
@@ -102,6 +121,8 @@ term-less filtered search, so those keep the API's own default order.`,
 	f.StringVar(&s.slug, "slug", "", "curseforge slug")
 	f.IntVar(&s.gameVersionTypeID, "game-version-type-id", 0, "curseforge game version type: 1=release, 2=beta, 3=alpha")
 	f.StringSliceVar(&s.rawParams, "raw-param", nil, "raw curseforge query parameter key=value, passed through verbatim (repeatable)")
+	f.BoolVarP(&s.web, "web", "w", false, "open the search page in a browser instead of calling the API")
+	addGradleFlag(f, &s.gradle)
 
 	cmd.SetUsageFunc(func(c *cobra.Command) error {
 		return writeGroupedUsage(c, []struct {
@@ -110,12 +131,13 @@ term-less filtered search, so those keep the API's own default order.`,
 		}{
 			{"Common", []string{
 				"project-type", "category", "loader", "game-version",
-				"sort", "limit", "offset",
+				"sort", "limit", "offset", "gradle",
 			}},
 			{"CurseForge only", []string{
 				"sort-order", "class-id", "category-id", "mod-id",
 				"slug", "game-version-type-id", "raw-param",
 			}},
+			{"Output", []string{"web"}},
 		})
 	})
 	return cmd
