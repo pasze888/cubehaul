@@ -87,7 +87,7 @@ func Execute() {
 
 func init() {
 	f := rootCmd.PersistentFlags()
-	f.StringVar(&jsonOutput, "json", "", "print output as JSON; --json=field,field keeps only those fields")
+	f.StringVar(&jsonOutput, "json", "", "print output as JSON; bare --json keeps every field, --json=field,field keeps only those")
 	f.Lookup("json").NoOptDefVal = "all"
 	f.StringVar(&jqOutput, "jq", "", "filter the JSON output with a jq expression (implies --json)")
 	f.BoolVar(&debugOutput, "debug", false, "print request, retry and proxy diagnostics to stderr")

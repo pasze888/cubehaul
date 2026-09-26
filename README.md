@@ -113,7 +113,7 @@ cubehaul config path                       # 配置文件位置
 | `--sort` | modrinth: relevance/downloads/follows/newest/updated；curseforge: relevancy/featured/popularity/updated/name/author/downloads/category/game-version |
 | `--limit` / `--offset` | 分页（单页上限：modrinth 100、curseforge 50；超限会钳制并在 stderr 提示，用 `--offset` 翻页） |
 
-> **缺省排序**：带查询词时两个平台都按**相关度**排（Modrinth 的 `relevance`、CurseForge 的 `relevancy`/`sortField=13`）。CF 的纯过滤搜索（query 为空，如 `search "" --category technology`）不发 sortField，用服务端默认序——空查询下相关度无定义。
+> **缺省排序**：带查询词时两个平台都按**相关度**排（Modrinth 的 `relevance`、CurseForge 的 `relevancy`/`sortField=13`）。CF 的纯过滤搜索（query 为空，如 `search --category technology`）不发 sortField，用服务端默认序——空查询下相关度无定义。
 >
 > CF 的排序方向总会显式发出：`popularity`/`updated`/`downloads`/`relevancy` 走 `desc`，`name`/`author` 走 `asc`，`featured`/`category`/`game-version` 不指定（沿用服务端顺序）。`--sort-order` 可覆盖。
 
@@ -125,13 +125,13 @@ Modrinth 的 facet 语法：内层数组 OR、外层 AND，`:`/`=` 表示等于�
 
 ```bash
 # 便捷参数自动展开为 facet 组
-cubehaul modrinth search "" --category adventure --category technology --loader fabric --game-version 1.20.1
+cubehaul modrinth search --category adventure --category technology --loader fabric --game-version 1.20.1
 
 # 原始 facet 透传，可重复
-cubehaul modrinth search "" --facet 'downloads>=100000000' --facet 'versions!=1.20.1'
+cubehaul modrinth search --facet 'downloads>=100000000' --facet 'versions!=1.20.1'
 
 # 原始 JSON facet 组（追加 AND 组，优先级最高）
-cubehaul modrinth search "" --facets-json '[["categories:forge"],["versions:1.17.1"]]'
+cubehaul modrinth search --facets-json '[["categories:forge"],["versions:1.17.1"]]'
 
 # 其它便捷过滤（仅 modrinth）
 --open-source / --no-open-source   # 开源过滤

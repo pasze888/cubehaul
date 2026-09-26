@@ -55,16 +55,12 @@ func newCurseforgeSearchCmd() *cobra.Command {
 		Long: `Search projects on CurseForge.
 
 The query is optional: omitting it lists projects filtered by the given flags.
+With a query and no --sort, results are ranked by relevance and --sort-order
+sets the direction; relevance is undefined for a term-less search, so those keep
+the API's own order.
 
 CurseForge has no facet system; --raw-param passes arbitrary query parameters
 through verbatim, e.g. --raw-param 'gameVersion=1.20.1'.
-
-With a query and no --sort, results are ranked by relevance (sortField=13).
-The sort direction is always sent explicitly when a field has a meaningful one
--- desc for popularity/updated/downloads/relevancy, asc for name/author --
-because the API leaves sortOrder undocumented and empirically treats an omitted
-one as ascending. --sort-order overrides it. Relevance is undefined for a
-term-less filtered search, so those keep the API's own default order.
 
 With --web no request is made: the CurseForge search page is opened with the
 query only, since the site encodes its other filters differently from the API.`,

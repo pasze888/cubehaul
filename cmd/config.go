@@ -60,6 +60,9 @@ func newConfigListCmd() *cobra.Command {
   unset    no value anywhere
 
 Secret values are masked unless --show-secrets is given.`,
+		Example: `  cubehaul config list
+  cubehaul config list --show-secrets
+  cubehaul config list --json=key,value`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rows, err := configRows()
@@ -170,6 +173,8 @@ func newConfigPathCmd() *cobra.Command {
 		Short: "Print the location of the configuration file",
 		Long: `Print the path of the configuration file, whether or not it exists yet. The
 file is created by the first "cubehaul config set".`,
+		Example: `  cubehaul config path
+  cubehaul config path --json`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path, err := config.ConfigPath()

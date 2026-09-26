@@ -271,11 +271,17 @@ func newCategoriesCmd(plat string, exposeClassID bool) *cobra.Command {
 	var flags struct {
 		classID int
 	}
+	// The only flag here exists on a single platform, so the example for the other
+	// platform shows JSON field selection instead of repeating the usage line.
+	example := fmt.Sprintf("  cubehaul %s categories --json=name,slug", plat)
+	if exposeClassID {
+		example = fmt.Sprintf("  cubehaul %s categories --class-id 6", plat)
+	}
 	cmd := &cobra.Command{
 		Use:     "categories",
 		Short:   "List Minecraft categories",
 		Long:    `List the Minecraft category tree. Names feed into "search --category".`,
-		Example: fmt.Sprintf("  cubehaul %s categories", plat),
+		Example: example,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newPlatformClient(plat)
